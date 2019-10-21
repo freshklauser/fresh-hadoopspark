@@ -48,7 +48,7 @@
 
   ```
   # 如下链接下载 jdk 的 tar.gz 包
-  https://login.oracle.com/mysso/signon.jsp
+  https://www.oracle.com/technetwork/java/javase/downloads/java-archive-javase8-2177648.html
   # 新建java安装目录
   sudo mkdir -p /usr/java/
   # (JDK包所在目录下)将改名后的 jdk 包 移动到 /usr/java/ 目录下
@@ -358,5 +358,11 @@
   conda install pyspark=2.3.2   # 对应默认安装的是 python-3.6.6
   ```
 
-  
+  ## hadoop
+
+  解压，重命名，移动 /usr/local/hadoop
+
+  cd /usr/local/hadoop
+
+  ./bin/hadoop version
 

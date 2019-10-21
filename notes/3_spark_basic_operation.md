@@ -996,7 +996,7 @@ val rdd2 = sc.textFile("hdfs://hadoop102:9000/RELEASE")
 
 - 2）参数描述
   （1）[**分区内**] zeroValue：给每一个分区中的每一个 key 一个初始值
-  （2）[**分区内**] seqOp：函数用于在每一个分区中用初始值逐步迭代 value
+  （2）[**分区内**] seqOp：函数用于在每一个分区中用初始值逐步迭代 value (相比于 groupbykey, seqOp相当于预处理过程)
   （3）[**分区间**] combOp：函数用于合并每个分区中的结果 
 
 - 3）需求：创建一个 pairRDD, 取出每一个分区相同 key 对应值的最大值，然后相加
@@ -1024,11 +1024,72 @@ val rdd2 = sc.textFile("hdfs://hadoop102:9000/RELEASE")
 
   结果中，b在分区0, a和c在分区1，是根据哈希分区得到（ key-value类型默认的分区器是 `HashPartitioner` ）。
 
+  - 累加聚合：`aggregateByKey` 和 `reduceByKey`
 
+  ```
+  scala> rdd.aggregateByKey(0)((u,v)=>u+v, (u1,u2)=>u1+u2).collect
+  res2: Array[(String, Int)] = Array((b,3), (a,5), (c,18))
+  scala> rdd.aggregateByKey(0)(_+_, _+_).collect
+  res4: Array[(String, Int)] = Array((b,3), (a,5), (c,18))
+  
+  scala> rdd.reduceByKey((v1,v2)=>v1+v2).collect
+  res3: Array[(String, Int)] = Array((b,3), (a,5), (c,18))
+  scala> rdd.reduceByKey(_+_).collect
+  res5: Array[(String, Int)] = Array((b,3), (a,5), (c,18))
+  
+  
+  ```
 
+##### 2.3.3.6   foldByKey 案例
 
+- 定义：与reducebykey实现同样的功能
+  `def foldByKey(zeroValue: V)(func: (V, V) ⇒ V): RDD[(K, V)]`
 
+  ```
+  scala> rdd.foldByKey(0)(_+_).collect
+  res8: Array[(String, Int)] = Array((b,3), (a,5), (c,18))
+  ```
 
+- <font color=coral>区别`aggregateByKey, foldByKey, reduceByKey :`</font>
+
+  `aggregateByKey(U)(seqOp:(U, V) ⇒ U, combOp:(U, U) ⇒ U): RDD[(K, U)]`
+  	---> 两个func（seqOp, combOp），可自定义不用的分区内和分区间的运算函数
+  	---> 初始值定义
+
+  ​	---> **最灵活，初始值，分区内func，分区间func，均可以自己定义**
+
+  `foldByKey(zeroValue)(func: (V, V) ⇒ V): RDD[(K, V)]`
+
+  ​	---> 一个 func， 分区内和分区间运算的函数相同
+
+  ​	---> 初始值需要定义
+
+  `reduceByKey(func: (V,V) => V): RDD[(K,V)]`
+
+  ​	---> 一个 func， 分区内和分区间运算的函数相同
+  ​	---> 初始值不需要定义
+
+  通常，使用优先级：`aggregateByKey` > `reduceByKey` > `foldByKey`
+
+##### 2.3.3.7 combineByKey 案例
+
+- 作用：针对相同K， 将 V 合并成一个集合
+
+- 定义
+
+  ```
+  defcombineByKey[C](
+  	createCombiner: (V) ⇒ C, 	# 执行到第一个key的value时调用 createCombiner
+  	mergeValue: (C, V) ⇒ C, 	# 分区内
+  	mergeCombiners: (C, C) ⇒ C	# 分区间
+  	): RDD[(K, C)]
+  ```
+
+- 参数：
+
+  <div align=center><img src='./img/2-6.png' width=100%></div>
+
+  
 
 
 
