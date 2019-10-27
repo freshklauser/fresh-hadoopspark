@@ -347,6 +347,7 @@ WordCount 案例分析数据流：
 - 2）修改 spark-env.sh, 添加如下配置
 
   ```
+  # 确保HADOOP_CONF_DIR 或 YARN_CONF_DIR指向包含Hadoop集群（客户端）配置文件的目录
   YARN_CONF_DIR=..../hadoop-2.7.2/etc/hadoop		# .... 表示 hadoop-2.7.2的父级目录
   ```
 
@@ -1040,7 +1041,7 @@ val rdd2 = sc.textFile("hdfs://hadoop102:9000/RELEASE")
   
   ```
 
-##### 2.3.3.6   foldByKey 案例
+##### 2.3.3.6 foldByKey 案例
 
 - 定义：与reducebykey实现同样的功能
   `def foldByKey(zeroValue: V)(func: (V, V) ⇒ V): RDD[(K, V)]`
@@ -1078,7 +1079,7 @@ val rdd2 = sc.textFile("hdfs://hadoop102:9000/RELEASE")
 - 定义
 
   ```
-  defcombineByKey[C](
+  def combineByKey[C](		    # 没有ClassTag，因此需要在中间结果时指定类型，否则类型丢失
   	createCombiner: (V) ⇒ C, 	# 执行到第一个key的value时调用 createCombiner
   	mergeValue: (C, V) ⇒ C, 	# 分区内
   	mergeCombiners: (C, C) ⇒ C	# 分区间
@@ -1089,23 +1090,117 @@ val rdd2 = sc.textFile("hdfs://hadoop102:9000/RELEASE")
 
   <div align=center><img src='./img/2-6.png' width=100%></div>
 
+- 示例：
+
+  ```
+  scala> val input = sc.parallelize(Array(("a",88),("b",95),("a",91),("b",93),("a",95),("b",98)),2)
+  # 將相同的 key 对应的值相加，同时记录该key出现的次数，放入一个二元数组 (b,(286,3))
+  scala> val combine = input.combineByKey((_,1),(acc:(Int,Int),v)=>(acc._1+v,acc._2+1),(acc1:(Int,Int),acc2:(Int,Int))=>(acc1._1+acc2._1,acc1._2+acc2._2))
+  # 计算平均值
+  scala> val mean = combine.map(x=>(x._1,x._2._1/x._2._2))
+  scala> mean.collect
+  res3: Array[(String, Int)] = Array((b,95), (a,91))
+  # 取小数  注意用法，和上几行代码等价
+  scala> val result = combine.map{case(key,value)=>(key,value._1/value._2.toDouble)}
+  scala> result.collect
+  res4: Array[(String, Double)] = Array((b,95.33333333333333), (a,91.33333333333333))
+  ```
+
+  **注意**：
+
+  `(acc:(Int,Int),v)=>(acc._1+v,acc._2+1) --> `同key累加和，次数自增1  ==》分区内，全部运算完后才执行分区间运算
+  `(acc1:(Int,Int),acc2:(Int,Int))=>(acc1._1+acc2._1,acc1._2+acc2._2) -->` 同key累加，同key次数累加 ==》 分区间运算
+
+  <div align=center><img src='./img/2-7.png' width=100%></div>
+
+- 示例
+
+  使用`combineByKey`实现`wordcount`
+
+  ```
+  scala> rdd.combineByKey(v=>v,(c:Int,v)=>(c+v),(c1:Int,c2:Int)=>c1+c2).collect
+  res8: Array[(String, Int)] = Array((b,3), (a,5), (c,18))
+  ```
+
+   **注意**：
+
+  `v=>v:` 指定 key
+
+  `(c:Int,v)=>(c+v):` **分区内运算**，将同key的count累加
+
+  `(c1:Int,c2:Int)=>c1+c2:` **分区间运算**，将不同分区中同key的count累加
+
+  通常，按灵活度使用优先级：<font color=coral>`combineByKey > aggregateByKey > reduceByKey > foldByKey`</font>
+  	`combineByKey `调用的底层函数是 `combineByKeyWithClassTag (优先级最高)`
+
+##### 2.3.3.8 sortByKey([ascending], [numTaks]) 案例
+
+- 定义
+
+  ```
+    def sortByKey(ascending: Boolean = true, numPartitions: Int = self.partitions.length)
+        : RDD[(K, V)] = self.withScope
+    {
+      val part = new RangePartitioner(numPartitions, self, ascending)
+      new ShuffledRDD[K, V, V](self, part)
+        .setKeyOrdering(if (ascending) ordering else ordering.reverse)
+    }
+    # rdd.sortByKey()   # （）不能丢，否则会报错
+  ```
+
+  <font color=coral>分区器：`RangePartitioner`</font>
+
+  <div align=center><img src='./img/2-8.png' width=90%></div>
+
+##### 2.3.3.9 mapValues 案例
+
+- 针对 `value`进行元素 矢量化 操作
+
+  <div align=center><img src='./img/2-9.png' width=90%></div>
+
+##### 2.3.3.10 join(otherDataset, [numTasks]) 案例
+
+- 作用：在类型为（k,v）和 (k,w) 的 RDD 上调用，返回一个相同 key 对应的所有元素对在一起的 (k, (v, w)) 类型的 RDD.
+
+  `def  join[W](other: [RDD]) : [RDD][(K, (V, W))]       `
+
+- `join , leftOuterJoin , rightOuterJoin , fullOuterJoin`  --> 类似 mysql 中的内连接 外连接
+
+  <div align=center><img src='./img/2-10.png' width=90%></div>
+
+##### 2.3.3.11 cogroup(otherDataset, [numTasks]) 案例
+
+- 作用：在类型为（k,v）和 (k,w) 的 RDD 上调用，返回一个<font color=coral> (k, (Iterable[v], Iterable[w])) </font>类型的 RDD.
+
+  分区1： (1,a), (1,b), (1,c) 
+  分区2： (1,d)
+  `join:`
+  	`return:` (1, (a,d)),    (1, (b,d)),    (1, (c,d))
+
+  `cogroup:`
+
+  ​	`return:` (  1,  **(** Iterator(a,b,c), Iterator(d) **)**   )
+
+- 示例：
+
+  ```
+  scala> rdd.collect
+  res10: Array[(Int, String)] = Array((1,a), (2,b), (3,c), (4,e), (1,efs), (3,eeeee))
+  scala> rdd1.collect
+  res11: Array[(Int, String)] = Array((1,aa), (2,bb), (4,ee), (1,aaaa), (2,bbbb))
   
+  scala> rdd.join(rdd1).collect
+  res12: Array[(Int, (String, String))] = Array((1,(a,aa)), (1,(a,aaaa)), (1,(efs,aa)), (1,(efs,aaaa)), (2,(b,bb)), (2,(b,bbbb)), (4,(e,ee)))
+  
+  scala> rdd.cogroup(rdd1).collect
+  res13: Array[(Int, (Iterable[String], Iterable[String]))] = Array((1,(CompactBuffer(a, efs),CompactBuffer(aa, aaaa))), (2,(CompactBuffer(b),CompactBuffer(bb, bbbb))), (3,(CompactBuffer(c, eeeee),CompactBuffer())), (4,(CompactBuffer(e),CompactBuffer(ee))))
+  ```
 
+  rdd1 中不存在Key为3的元素（自然就不存在Value了），在组合的过程中将 rdd1 对应的位置设置为CompactBuffer()了，而不是去掉了(在 join 中直接去掉key=3)。
 
+#### 2.3.4 实例
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+后续内容不再更新，见 课程附带的 doc 文档
 
 
 
