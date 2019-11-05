@@ -118,19 +118,29 @@
     --master <master-url> \
     --deploy-mode <deploy-mode> \
     --conf <key>=<value> \
-    ... # other options
+    --executor-cores Num \			# Number of cores per executor(YARN mode: default=1)
+    ... # other options				
     <application-jar> \				# 主类 main 所在的jar包
     [application-arguments]			 # 主类 main的参数
   ```
 
-- 2）参数说明
+  ```
+  
+  ```
+
+  
+
+- 2）参数说明 (**实际生产中尽量不用默认值，如分配的cores， memory等**)
   详细参数及说明参考[spark_commands.md](./spark_commands.md)
   `--master` ：制定 Master 的地址；
   `--class `：你的应用的启动类；
   `--deploy-mode`：是否发布你的驱动到 worker 节点（cluster）或者作为一个本地客户端（client）, default: client；
   `--conf `：任意的 Spark 配置属性，格式 key=value, 如果值包含空格，可以加引号"key=value"；
   `--executor-memory 1G`：指定每个 executor 可用内存为1G；
-  `--total-executor-cores 2`：指定每个 executor 使用的 cup 核数为2个；
+  `--total-executor-cores 2`： `Total cores for all executors`
+  `--executor-cores Num`：指定每个 executor 使用的 cup 核数 `Number of cores per executor`
+
+  ​					`YARN mode: default=1;   standalone mode:default = all available cores`
 
 - 3）任务提交
 
@@ -996,7 +1006,7 @@ val rdd2 = sc.textFile("hdfs://hadoop102:9000/RELEASE")
      注意：<font color=coral>`combOp`一定是在 `seqOp`完全计算完之后才会开始执行</font>
 
 - 2）参数描述
-  （1）[**分区内**] zeroValue：给每一个分区中的每一个 key 一个初始值
+  （1）[**分区内**] zeroValue：给每一个分区中的每一种 key 一个初始值
   （2）[**分区内**] seqOp：函数用于在每一个分区中用初始值逐步迭代 value (相比于 groupbykey, seqOp相当于预处理过程)
   （3）[**分区间**] combOp：函数用于合并每个分区中的结果 
 
@@ -1206,7 +1216,74 @@ val rdd2 = sc.textFile("hdfs://hadoop102:9000/RELEASE")
 
 
 
+### 2.6 RDD依赖关系
 
+- `rdd.toDebugString`
+
+```
+scala> val lines = sc.textFile("hdfs:/lyu/input/word.txt")
+lines: org.apache.spark.rdd.RDD[String] = hdfs:/lyu/input/word.txt MapPartitionsRDD[1] at textFile at <console>:24
+
+scala> val words = lines.flatMap(_.split(" "))
+words: org.apache.spark.rdd.RDD[String] = MapPartitionsRDD[2] at flatMap at <console>:26
+
+scala> val wordOne = words.map((_, 1))
+wordOne: org.apache.spark.rdd.RDD[(String, Int)] = MapPartitionsRDD[3] at map at <console>:28
+
+scala> val WordCount = wordOne.reduceByKey(_+_)
+WordCount: org.apache.spark.rdd.RDD[(String, Int)] = ShuffledRDD[4] at reduceByKey at <console>:30
+
+scala> lines.toDebugString
+res0: String =
+(2) hdfs:/lyu/input/word.txt MapPartitionsRDD[1] at textFile at <console>:24 []
+ |  hdfs:/lyu/input/word.txt HadoopRDD[0] at textFile at <console>:24 []
+
+scala> words.toDebugString
+res1: String =
+(2) MapPartitionsRDD[2] at flatMap at <console>:26 []
+ |  hdfs:/lyu/input/word.txt MapPartitionsRDD[1] at textFile at <console>:24 []
+ |  hdfs:/lyu/input/word.txt HadoopRDD[0] at textFile at <console>:24 []
+
+scala> wordOne.toDebugString
+res2: String =
+(2) MapPartitionsRDD[3] at map at <console>:28 []		# （2）：分区数
+ |  MapPartitionsRDD[2] at flatMap at <console>:26 []
+ |  hdfs:/lyu/input/word.txt MapPartitionsRDD[1] at textFile at <console>:24 []
+ |  hdfs:/lyu/input/word.txt HadoopRDD[0] at textFile at <console>:24 []
+
+scala> WordCount.toDebugString
+res3: String =
+(2) ShuffledRDD[4] at reduceByKey at <console>:30 []
+ +-(2) MapPartitionsRDD[3] at map at <console>:28 []	# +-：表示经过了shuffle
+    |  MapPartitionsRDD[2] at flatMap at <console>:26 []
+    |  hdfs:/lyu/input/word.txt MapPartitionsRDD[1] at textFile at <console>:24 []
+    |  hdfs:/lyu/input/word.txt HadoopRDD[0] at textFile at <console>:24 []
+
+scala> WordCount.map((_,1))
+res4: org.apache.spark.rdd.RDD[((String, Int), Int)] = MapPartitionsRDD[5] at map at <console>:33
+
+scala> res4.reduceByKey(_+_, 4)
+res5: org.apache.spark.rdd.RDD[((String, Int), Int)] = ShuffledRDD[6] at reduceByKey at <console>:35
+
+scala> res4.toDebugString
+res6: String =
+(2) MapPartitionsRDD[5] at map at <console>:33 []
+ |  ShuffledRDD[4] at reduceByKey at <console>:30 []
+ +-(2) MapPartitionsRDD[3] at map at <console>:28 []
+    |  MapPartitionsRDD[2] at flatMap at <console>:26 []
+    |  hdfs:/lyu/input/word.txt MapPartitionsRDD[1] at textFile at <console>:24 []
+    |  hdfs:/lyu/input/word.txt HadoopRDD[0] at textFile at <console>:24 []
+
+scala> res5.toDebugString
+res7: String =
+(4) ShuffledRDD[6] at reduceByKey at <console>:35 []		# （4）：分区数
+ +-(2) MapPartitionsRDD[5] at map at <console>:33 []
+    |  ShuffledRDD[4] at reduceByKey at <console>:30 []
+    +-(2) MapPartitionsRDD[3] at map at <console>:28 []
+       |  MapPartitionsRDD[2] at flatMap at <console>:26 []
+       |  hdfs:/lyu/input/word.txt MapPartitionsRDD[1] at textFile at <console>:24 []
+       |  hdfs:/lyu/input/word.txt HadoopRDD[0] at textFile at <console>:24 []
+```
 
 
 

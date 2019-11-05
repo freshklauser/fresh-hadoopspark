@@ -591,7 +591,7 @@ slave1: starting nodemanager, logging to /usr/local/hadoop/logs/yarn-hadoop-node
 700 NodeManager
 ```
 
-## 10. 测试
+## 10. 测试hadoop集群
 
 - 进入`dfs`的`namenode`的`webUI`界面 　`ip:port` --->  `172.17.0.2:50070`　（docker宿主机ip: 10.180.145.17）
 
@@ -655,4 +655,6 @@ slave1: starting nodemanager, logging to /usr/local/hadoop/logs/yarn-hadoop-node
   `namenode`的`webUI`界面中hdfs文件目录如下：
 
   <div align=center><img src='./img/hdp-3.png' width=100%></div><div align=center><img src='./img/hdp-4.png' width=100%></div><div align=center><img src='./img/hdp-5.png' width=100%></div>
+
+## 11. docker容器的集群中安裝spark
 
