@@ -1,0 +1,53 @@
+mysql:
+mysql> show databases;
++--------------------+
+| Database           |
++--------------------+
+| information_schema |
+| mysql              |
+| performance_schema |
++--------------------+
+3 rows in set (0.01 sec)
+
+mysql> create database klaus_db;
+Query OK, 1 row affected (0.00 sec)
+
+mysql> show databases;
++--------------------+
+| Database           |
++--------------------+
+| information_schema |
+| klaus_db           |
+| mysql              |
+| performance_schema |
++--------------------+
+4 rows in set (0.00 sec)
+
+mysql> create table if not exists tb_hive(id INT UNSIGNED AUTO_INCREMENT, author VARCHAR(40), submission_date DATE, PRIMARY KEY(id)) DEFAULT CHARSET=utf8;
+Query OK, 0 rows affected (0.06 sec)
+
+mysql> show tables;
++--------------------+
+| Tables_in_klaus_db |
++--------------------+
+| tb_hive            |
++--------------------+
+1 row in set (0.00 sec)
+
+mysql> desc tb_hive;
++-----------------+------------------+------+-----+---------+----------------+
+| Field           | Type             | Null | Key | Default | Extra          |
++-----------------+------------------+------+-----+---------+----------------+
+| id              | int(10) unsigned | NO   | PRI | NULL    | auto_increment |
+| author          | varchar(40)      | YES  |     | NULL    |                |
+| submission_date | date             | YES  |     | NULL    |                |
++-----------------+------------------+------+-----+---------+----------------+
+3 rows in set (0.00 sec)
+
+
+
+# mysql driver url
+driver=com.mysql.jdbc.Driver
+url=jdbc:mysql://{ip}:{port}/{db_name}?useUnicode=true&characterEncoding=UTF-8&zeroDateTimeBehavior=convertToNull
+username=root
+password=root
