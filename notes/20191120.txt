@@ -36,3 +36,5 @@
 	--> Root directory(D:\BigData\demo\WiFiProbeAnalysis) && 勾选 Search for projects recursively / Import Maven projects automatically / JDK for importer(1.8)
 	--> Select Maven Projects to import(会列出所有包含pom.xml的项目) && Select all
 	--> next ......
+	
+5. python项目结构 参考git的recomsys
