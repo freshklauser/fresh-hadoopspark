@@ -1,0 +1,15 @@
+shift+shift: 打开全局搜索
+ctrl+p: 查看方法需要的传入的参数  Ctrl+P brings up a list of valid parameters.
+ctrl+y: 删除一整行 (不用选中整行)
+ctrl+x: 剪切一整行 (不用选中整行)
+ctrl+shift+/ 或 ctrl+/ : 注释
+ctrl+D: 复制当前行内容到下一行
+Alt+Q (View | Context Info) to see the declaration of the current method without the need to scroll to it.
+Ctrl+E (View | Recent Files) brings a popup list of the recently visited files
+Ctrl+Shift+J shortcut joins two lines into one and removes unnecessary space to match your code style.
+Ctrl+H (Navigate | Type Hierarchy) see the inheritance hierarchy for a selected class
+
+
+
+.var
+.sout

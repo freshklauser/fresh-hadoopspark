@@ -1,0 +1,172 @@
+1. kafka必须设置的参数
+zookeeper.connect=node1:2181,node2:2181,node3:2181,node4:2181
+
+2. kafka 群启脚本和群关脚本 (放在root用户根目录的bin目录下，并设置权限777 : chmod 777 xxxx.sh)
+#!/bin/bash
+
+case $1 in
+"start"){
+
+	for i in node1 nod2 node3 ndoe4
+	do
+		echo "**************$i****************"
+		ssh $i "/usr/hdp/2.6.3.0-235/kafka/bin/kafka-server-start.sh -daemon /usr/hdp/2.6.3.0-235/kafka/config/server.properties"
+	done
+
+};;
+
+"stop"){
+
+	for i in node1 nod2 node3 ndoe4
+	do
+		echo "**************$i****************"
+		ssh $i "/usr/hdp/2.6.3.0-235/kafka/bin/kafka-server-stop.sh /usr/hdp/2.6.3.0-235/kafka/config/server.properties"
+	done
+
+};;
+
+esac
+
+
+eg. 文件名： testxshelljs.sh
+[centos@localhost /]$ cd bin/
+[centos@localhost /]$ sudo vim testxshelljs.sh
+#!/bin/bash
+case $1 in
+"start"){
+        for i in node1 nod2 node3 ndoe4
+        do
+                echo "************** start:$i ****************"
+        done
+};;
+"stop"){
+        for i in node1 nod2 node3 ndoe4
+        do
+                echo "************** stop:$i ****************"
+        done
+};;
+esac
+[centos@localhost bin]$ chmod 777 testxshelljs.sh   # 即可全局执行testxshelljs.sh
+[centos@localhost bin]$ cd 
+[centos@localhost ~]$ testxshelljs.sh start
+************** start:node1 ****************
+************** start:nod2 ****************
+************** start:node3 ****************
+************** start:ndoe4 ****************
+[centos@localhost Documents]$ cd DockerDeploy/
+[centos@localhost DockerDeploy]$ testxshelljs.sh stop
+************** stop:node1 ****************
+************** stop:nod2 ****************
+************** stop:node3 ****************
+************** stop:ndoe4 ****************
+
+	
+2. kafka节点
+  kafka 主节点在 node3 有(node1中不是主节点)
+		broker端口：6667 (设置了listener则是以listener的端口为准)
+  zookeeper 主节点在 node2 和 node4 中，默认端口 clientPort=2181
+		topic的元信息是保存在zk中，因此--create是在 --zookeeper {ip}:{port}中创建目录	
+		producer是在--broker-list中生产
+		consumer是在--bootstrap-server中消费
+
+分区作用：
+	提高负载能力、提高I/O读写并行度、
+副本作用：备份
+
+
+
+3. 查看和创建topic
+[root@node3 kafka]# bin/kafka-topics.sh --zookeeper node3:2181 --list
+
+[root@node3 kafka]# bin/kafka-topics.sh --list --zookeeper node3:2181
+SZ-TG2-001
+__consumer_offsets
+foconn - marked for deletion
+foxconn
+lyu-1
+
+[hdfs@node2 kafka]$ bin/kafka-topics.sh --zookeeper node2:2181 --create --replication-factor 3 --partitions 3 --topic pubg
+Created topic "pubg".
+
+# 查看topic的详情
+[hdfs@node3 kafka]$ bin/kafka-topics.sh --zookeeper node2:2181 --describe --topic pubg
+Topic:pubg	PartitionCount:3	ReplicationFactor:3	Configs:
+	Topic: pubg	Partition: 0	Leader: 1002	Replicas: 1002,1003,1001	Isr: 1002,1003,1001
+	Topic: pubg	Partition: 1	Leader: 1003	Replicas: 1003,1001,1002	Isr: 1003,1001,1002
+	Topic: pubg	Partition: 2	Leader: 1001	Replicas: 1001,1002,1003	Isr: 1001,1002,1003
+	
+# 修改topic分区数(只能增加，减少报错-ERROR kafka.admin.AdminOperationException: The number of partitions for a topic can only be increased)
+[hdfs@node3 kafka]$ bin/kafka-topics.sh --zookeeper node2:2181 --alter --topic pubg --partitions 4
+WARNING: If partitions are increased for a topic that has a key, the partition logic or ordering of the messages will be affected
+Adding partitions succeeded!
+
+[hdfs@node3 kafka]$ bin/kafka-topics.sh --zookeeper node2:2181 --describe --topic pubg
+Topic:pubg	PartitionCount:4	ReplicationFactor:3	Configs:
+	Topic: pubg	Partition: 0	Leader: 1002	Replicas: 1002,1003,1001	Isr: 1002,1003,1001
+	Topic: pubg	Partition: 1	Leader: 1003	Replicas: 1003,1001,1002	Isr: 1003,1001,1002
+	Topic: pubg	Partition: 2	Leader: 1001	Replicas: 1001,1002,1003	Isr: 1001,1002,1003
+	Topic: pubg	Partition: 3	Leader: 1002	Replicas: 1002,1003,1001	Isr: 1002,1003,1001
+	
+模块小结：
+         producer								  broker 		 								consumer
+分区(提高负载能力、提高I/O并行度)	Topic(主题+分区):{topic}-{partition}				消费者组(组中的不同消费者不能同时消费同一个分区)
+ack(处理生产数据丢失问题)			Topic副本(leader + follower--备份作用)				offset 通过 Group+Topic+Partition 维护 offset
+									ISR(follower同步时间：replica.lag.time.max.ms )		面向group的分区分配(RoundRobin)和面向topic的分区分配(range)
+									ISR:HW,LEO -> (消费数据一致性和存储数据一致性)
+
+>>>>>>>>>> 消费者重置offset (命令行中的 --from-beginning) <<<<<<<<<<
+问题：如何重新消费某一个主题的数据(如何修改代码实现)？ 
+ -->  (1) 换一个group_id(kafka中消费者没有初始化的offset:消费者组第一次消费数据)
+	  (2) 同时添加 AUTO_OFFSET_RESET_CONFIG 为 earliest
+AUTO_OFFSET_RESET_CONFIG: 
+	earliest 
+		当各分区下有已提交的offset时，从提交的offset开始消费；无提交的offset时，从头开始消费 
+	latest 
+		当各分区下有已提交的offset时，从提交的offset开始消费；无提交的offset时，消费新产生的该分区下的数据 
+	none 
+		topic各分区都存在已提交的offset时，从offset后开始消费；只要有一个分区不存在已提交的offset，则抛出异常
+AUTO_OFFSET_RESET_CONFIG生效的前提(满足其一即可生效)：
+	  1) kafka中消费者没有初始化的offset (there is no initial offset in Kafka)
+	  2) 当前消费的offset在kafka的server中已经不存在了,如数据已经删除  (the current offset does not exist any more on the server)
+Notes:offset无提交并不等于没有数据消费(offset提交相当于在消费数据时增加了一个消费位置的标签，用于记录消费到哪一条数据)
+      如果一直在消费数据但从未提交offset，则earliest时会从头开始消费数据；latest时会从新产生的该分区下的数据开始消费
+ 
+
+
+>>>>>>>>>> 问题 <<<<<<<<<<
+ISR  OSR  AR
+LEO:每个副本的最后一个offset (lag end offset)
+HW:所有副本中最小的LEO (high watermark)
+Kafaka中怎么体现消息顺序性？ --> 分区内有序 (分区间无序)
+Kafka中的分区器，序列化器，拦截器：......
+Kafka的日志目录结构？
+	一个topic分为多个partition，一个partition分为多个segment，一个segment对应两个文件，分别为xxx.log和xxx.index。
+	index和log文件以当前segment的第一条消息的offset命名,所在文件夹命名是 topic名称+分区序号。
+	“.index”文件存储大量的索引信息，“.log”文件存储大量的数据，索引文件中的元数据指向对应数据文件中message 的物理偏移地址。
+指定一个offset,Kafka Controller怎么查找到对应的消息？
+	通过二分查找法定位到数据在哪个index文件中，通过扫描index文件找到该offset指向的对应log文件中message的物理偏移地址。
+Kafka的Controller控制器：
+	Broker 在启动时，会尝试去 ZooKeeper 中创建 /controller 节点。Kafka 当前选举控制器的规则是：第一个成功创建 /controller 节点的 Broker 会被指定为控制器。
+	负责管理集群Broker的上下线，所有Topic的分区副本分配和leader选举等工作
+Controller控制器作用：
+	1) 主题管理 (创建、删除、增加分区)
+	2) 分区重分配
+	3) Preferred 领导者选举
+	4) 集群成员管理 (新增 Broker、Broker 主动关闭、Broker 宕机)
+	5) 数据服务 (更新元数据请求等) 
+kafka中需要选择的地方及选举策略？
+	1) Controller控制器：(先到先得)第一个成功创建 /controller 节点的 Broker 会被指定为控制器；
+	2) Leader: (ISR)leader发生故障后，会从ISR中选举出新的leader, ISR中的follower依据同步时间replica.lag.time.max.ms 进行成员筛选
+失效副本是指什么？有那些应对措施？
+	不能及时与leader同步，暂时踢出ISR，等其追上leader之后再重新加入
+Kafka的那些设计让它有如此高的性能？
+	分布式
+	零拷贝技术
+	顺序写磁盘
+Kafka消息数据积压，消费能力不足怎么处理？
+	1) 如果是消费能力不足，可以考虑增加Topic的分区数，且同时提升消费组的消费者数量，消费者数量=分区数；(缺一不可)
+	2) 如果是下游数据处理不及时，可以考虑提高每批次拉取的数量。批次拉取数据过少(拉取数据/处理时间<生产速度),使处理的数据小于生产的数据，也会造成数据积压。
+	
+	
+
+4. spark连接kafka --- 需要下载Spark连接Kafka的代码库 jar 包

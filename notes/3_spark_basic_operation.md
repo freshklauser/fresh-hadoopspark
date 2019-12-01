@@ -395,7 +395,7 @@ WordCount 案例分析数据流：
 - 一个计算每个分区的函数
 - RDD之间的依赖关系
 - 一个 partitioner -- 分区器（key-value RDDS才有），即RDD的分片函数
-- 一个列表，存储存取每个 partition 的优先位置 (preferred location)
+- 一个列表，存储存取每个 partition 的优先位置 (preferred location)，宁愿移动计算，也不移动数据
 
 ### 1.2 RDD特点
 
