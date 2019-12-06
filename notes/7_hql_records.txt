@@ -274,5 +274,25 @@ hive> create table dbtaobao.inner_user_log(
     > STORED AS TEXTFILE;
 OK
 Time taken: 0.339 seconds
-# 创建临时表inner_user_info
+
+# 将user_log表中的数据插入到inner_user_log
+hive> INSERT OVERWRITE TABLE dbtaobao.inner_user_log select * from dbtaobao.user_log;
+Query ID = centos_20191206172031_714c9f9d-8452-48ac-af98-7a437da4fc85
+Total jobs = 1
+Launching Job 1 out of 1
+Tez session was closed. Reopening...
+Session re-established.
+Status: Running (Executing on YARN cluster with App id application_1575100000033_0015)
+
+--------------------------------------------------------------------------------
+        VERTICES      STATUS  TOTAL  COMPLETED  RUNNING  PENDING  FAILED  KILLED
+--------------------------------------------------------------------------------
+Map 1 ..........   SUCCEEDED      1          1        0        0       0       0
+--------------------------------------------------------------------------------
+VERTICES: 01/01  [==========================>>] 100%  ELAPSED TIME: 5.99 s     
+--------------------------------------------------------------------------------
+Loading data to table dbtaobao.inner_user_log
+Table dbtaobao.inner_user_log stats: [numFiles=1, numRows=10000, totalSize=473423, rawDataSize=463423]
+OK
+Time taken: 14.46 seconds
 
