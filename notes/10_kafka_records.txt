@@ -107,6 +107,55 @@ Topic:pubg	PartitionCount:4	ReplicationFactor:3	Configs:
 	Topic: pubg	Partition: 2	Leader: 1001	Replicas: 1001,1002,1003	Isr: 1001,1002,1003
 	Topic: pubg	Partition: 3	Leader: 1002	Replicas: 1002,1003,1001	Isr: 1002,1003,1001
 	
+# 查看 xxxxxxx.log文件中存储的数据
+[hdfs@node3 kafka]$ bin/kafka-run-class.sh kafka.tools.DumpLogSegments --files /tmp/kafka-logs/test3-0/00000000000000000000.log  --print-data-log
+offset: 1173 position: 69407 CreateTime: 1575607960307 isvalid: true payloadsize: 25 magic: 1 compresscodec: NoCompressionCodec crc: 421837832 payload: [{"0":0},{"2":0},{"1":0}]
+offset: 1174 position: 69466 CreateTime: 1575607961175 isvalid: true payloadsize: 25 magic: 1 compresscodec: NoCompressionCodec crc: 3189396333 payload: [{"0":0},{"2":0},{"1":0}]
+offset: 1175 position: 69525 CreateTime: 1575607962171 isvalid: true payloadsize: 25 magic: 1 compresscodec: NoCompressionCodec crc: 1276854057 payload: [{"0":0},{"2":0},{"1":0}]
+......
+[hdfs@node4 kafka]$ bin/kafka-run-class.sh kafka.tools.DumpLogSegments
+Parse a log file and dump its contents to the console, useful for debugging a seemingly corrupt log segment.
+Option                              Description                           
+------                              -----------                           
+--deep-iteration                    if set, uses deep instead of shallow  
+                                      iteration.                          
+--files <file1, file2, ...>         REQUIRED: The comma separated list of 
+                                      data and index log files to be      
+                                      dumped.                             
+--index-sanity-check                if set, just checks the index sanity  
+                                      without printing its content. This  
+                                      is the same check that is executed  
+                                      on broker startup to determine if an
+                                      index needs rebuilding or not.      
+--key-decoder-class                 if set, used to deserialize the keys. 
+                                      This class should implement kafka.  
+                                      serializer.Decoder trait. Custom jar
+                                      should be available in kafka/libs   
+                                      directory. (default: kafka.         
+                                      serializer.StringDecoder)           
+--max-message-size <Integer: size>  Size of largest message. (default:    
+                                      5242880)                            
+--offsets-decoder                   if set, log data will be parsed as    
+                                      offset data from __consumer_offsets 
+                                      topic.                              
+--print-data-log                    if set, printing the messages content 
+                                      when dumping data logs.             
+                                      Automatically set if any decoder    
+                                      option is specified.                
+--value-decoder-class               if set, used to deserialize the       
+                                      messages. This class should         
+                                      implement kafka.serializer.Decoder  
+                                      trait. Custom jar should be         
+                                      available in kafka/libs directory.  
+                                      (default: kafka.serializer.         
+                                      StringDecoder)                      
+--verify-index-only                 if set, just verify the index log     
+                                      without printing its content.    
+									  
+									  
+
+									  
+
 模块小结：
          producer								  broker 		 								consumer
 分区(提高负载能力、提高I/O并行度)	Topic(主题+分区):{topic}-{partition}				消费者组(组中的不同消费者不能同时消费同一个分区)
@@ -170,3 +219,9 @@ Kafka消息数据积压，消费能力不足怎么处理？
 	
 
 4. spark连接kafka --- 需要下载Spark连接Kafka的代码库 jar 包
+
+6. zookeeper操作
+[zk: localhost:2181(CONNECTED) 2] ls /
+[cluster, registry, controller, brokers, zookeeper, hbase-unsecure, admin, isr_change_notification, hiveserver2, controller_epoch, rmstore, consumers, ambari-metrics-cluster, config, hbase]
+
+
