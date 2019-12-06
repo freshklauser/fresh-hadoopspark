@@ -1,0 +1,35 @@
+hdfs dfs -mkdir /dajiangtai       	//新建hdfs目录 （ -p, 可迭代创建多级目录）
+
+hdfs dfs -rm   -r -f   /hbase       //删除hdfs不为空目录hbase
+hdfs dfs -rm   -r -f   /windows     //删除hdfs不为空目录windows
+
+# hdfs dfs -put <local_path> <hdfsdestpath>
+hdfs dfs -put djt.txt /dajiangtai    //上传文件到hdfs上 本地路径:djt.txt; /dajiangtai:hdfs路径
+hdfs dfs -put /home/zhangsf/aaa.txt  /input
+
+# 从hdfs下载文件到本地 hdfs dfs -get <hdfs_path> <localdestpath>
+[root@node4 ~]# hdfs dfs -get /word.txt /usr/hdp/2.6.3.0-235/spark2/upload-lyu/
+# 从 hdfs 中删除文件
+[hdfs@node4 root]$ hdfs dfs -rm -r /word.txt
+
+hdfs dfs -ls /klaus					// 列出 hdfs目录klaus下的文件(夹)列表
+
+hdfs dfs -cat /dajiangtai/djt.txt    
+hdfs dfs -cat /spark/hellospark 	//查看hdfs上的文件
+hdfs dfs -cat hdfs://192.168.10.201/spark/hellospark 
+hdfs dfs -cat hdfs://192.168.10.201:8020/spark/hellospark7234	# 完整的hdfs目录
+
+# 创建目录
+[centos@node3 dataset]$ hdfs dfs -mkdir -p /lyu/dbtaobao/dataset/user_log
+# 将本地数据上传到hdfs
+[centos@node3 dataset]$ hdfs dfs -put ./small_user_log.csv /lyu/dbtaobao/dataset/user_log
+# 查看csv文件的head-5
+[centos@node3 dataset]$ hdfs dfs -cat /lyu/dbtaobao/dataset/user_log/small_user_log.csv | head -5
+328862,406349,1280,2700,5476,11,11,0,0,1,四川
+328862,406349,1280,2700,5476,11,11,0,7,1,重庆市
+328862,807126,1181,1963,6109,11,11,0,1,0,上海市
+328862,406349,1280,2700,5476,11,11,2,6,0,台湾
+328862,406349,1280,2700,5476,11,11,0,6,2,甘肃
+cat: Unable to write to output stream.
+
+

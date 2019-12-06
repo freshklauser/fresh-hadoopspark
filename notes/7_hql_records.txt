@@ -93,7 +93,18 @@ Transaction isolation: TRANSACTION_REPEATABLE_READ
 3 rows selected (2.163 seconds)
 0: jdbc:hive2://node4:10000> 
 
-
+# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  hive配置 <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+1. hive-site.xml文件中添加如下配置信息，可以实现显示当前数据库以及查询表的头信息配置：
+	<property>
+      <name>hive.cli.print.header</name>
+      <value>true</value>
+    </property>
+   
+    <property>
+      <name>hive.cli.print.current.db</name>
+      <value>true</value>
+    </property>
+	
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  hive操作 <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 hive (lyu_db)> use lyu_db;
@@ -180,4 +191,88 @@ name	friend	childage	city
 yangyang	susu	18	beijing
 Time taken: 0.065 seconds, Fetched: 1 row(s)
 
+# 操作案例2： http://dblab.xmu.edu.cn/blog/1364-2/
+CREATE EXTERNAL TABLE dbtaobao.user_log(
+	user_id INT,
+	item_id INT,
+	cat_id INT,
+	merchant_id INT,
+	brand_id INT,
+	month STRING,
+	day STRING,
+	action INT,
+	age_range INT,
+	gender INT,
+	province STRING) 
+	COMMENT 'Welcome to xmu dblab,Now create dbtaobao.user_log!' 
+	ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' 
+	STORED AS TEXTFILE, 						# 表数据的存储序列化信息, 表存储类型
+	LOCATION '/dbtaobao/dataset/user_log';		# 外部表：数据源路径和数据存储路径 (外部表不会移动数据)
+	# LOCATION 字段多使用在外部表的场景下，当数据已经存在hdfs上，并且不能随意移动这个数据，
+	  这个数据也不能被修改想使用这个数据的时候，只能指定location，建表的时候也可以使用location
+	# 外部表的话，LCOATION 这个路径既是数据存放位置也是数据来源路径，因为 外部表不会移动数据
+
+hive> show create table user_log;
+OK
+CREATE EXTERNAL TABLE `user_log`(
+  `user_id` int, 
+  `item_id` int, 
+  `cat_id` int, 
+  `merchant_id` int, 
+  `brand_id` int, 
+  `month` string, 
+  `day` string, 
+  `action` int, 
+  `age_range` int, 
+  `gender` int, 
+  `province` string)
+COMMENT 'Welcome to dblab,Now create dbtaobao.user_log!'			# 注释
+ROW FORMAT DELIMITED 
+  FIELDS TERMINATED BY ',' 
+STORED AS INPUTFORMAT 												# 存储格式？？
+  'org.apache.hadoop.mapred.TextInputFormat' 
+OUTPUTFORMAT 														# 输出格式？？
+  'org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat'
+LOCATION															# 表的位置
+  'hdfs://node1:8020/lyu/dbtaobao/dataset/user_log'
+TBLPROPERTIES (
+  'numFiles'='1', 
+  'totalSize'='473395', 
+  'transient_lastDdlTime'='1575619276')
+Time taken: 0.258 seconds, Fetched: 25 row(s)
+
+hive> desc user_log;
+OK
+user_id             	int                 	                    
+item_id             	int                 	                    
+cat_id              	int                 	                    
+merchant_id         	int                 	                    
+brand_id            	int                 	                    
+month               	string              	                    
+day                 	string              	                    
+action              	int                 	                    
+age_range           	int                 	                    
+gender              	int                 	                    
+province            	string              	                    
+Time taken: 0.428 seconds, Fetched: 11 row(s)
+
+# 创建临时表 inner_user_log
+hive> create table dbtaobao.inner_user_log(
+    > user_id INT,
+    > item_id INT,
+    > cat_id INT,
+    > merchant_id INT,
+    > brand_id INT,
+    > month STRING,
+    > day STRING,
+    > action INT,
+    > age_range INT,
+    > gender INT,
+    > province STRING)
+    > COMMENT 'create inner table inner_user_log'
+    > ROW FORMAT DELIMITED FIELDS TERMINATED BY ','
+    > STORED AS TEXTFILE;
+OK
+Time taken: 0.339 seconds
+# 创建临时表inner_user_info
 
