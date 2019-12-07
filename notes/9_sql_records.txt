@@ -45,9 +45,87 @@ mysql> desc tb_hive;
 3 rows in set (0.00 sec)
 
 
+# host : %表示所有主机均可访问，localhost表示只有本地可访问
+mysql> SELECT host, user FROM mysql.user;
++-----------+------------------+
+| host      | user             |
++-----------+------------------+
+| %         | grace            |
+| %         | klaus            |
+| %         | root             |
+| localhost | mysql.infoschema |
+| localhost | mysql.session    |
+| localhost | mysql.sys        |
+| localhost | root             |
++-----------+------------------+
+7 rows in set (0.00 sec)
+
+
 
 # mysql driver url
 driver=com.mysql.jdbc.Driver
 url=jdbc:mysql://{ip}:{port}/{db_name}?useUnicode=true&characterEncoding=UTF-8&zeroDateTimeBehavior=convertToNull
 username=root
 password=root
+
+# 查看linux中mysql配置文件路径
+	[centos@node4 ~]$ /usr/sbin/mysqld --verbose --help | grep -A 1 'Default options'
+		Default options are read from the following files in the given order:
+		/etc/my.cnf /etc/mysql/my.cnf /usr/etc/my.cnf ~/.my.cnf         ----> 配置文件通常在的位置
+
+
+
+# 更改docker部署的mysql的配置文件：修改当前编码为utf8
+	# 查看当前mysql编码
+	mysql> show variables like 'char%';
+	+--------------------------+----------------------------+
+	| Variable_name            | Value                      |
+	+--------------------------+----------------------------+
+	| character_set_client     | utf8                       |
+	| character_set_connection | utf8                       |
+	| character_set_database   | latin1                     |
+	| character_set_filesystem | binary                     |
+	| character_set_results    | utf8                       |
+	| character_set_server     | latin1                     |
+	| character_set_system     | utf8                       |
+	| character_sets_dir       | /usr/share/mysql/charsets/ |
+	+--------------------------+----------------------------+
+	8 rows in set (0.00 sec)
+	# 修改编码 character_set_server (这种方法重启会失效)
+	mysql> set character_set_server=utf8;
+	Query OK, 0 rows affected (0.00 sec)
+	# 可以 修改配置文件 , 在[mysqld]下添加一行character_set_server=utf8
+	[centos@node4 ~]$ sudo vim /etc/my.cnf
+	---> [mysqld] 添加： character_set_server=utf8
+	# 重启mysql服务
+	service mysql restart
+	
+	# docker容器中文件发送到宿主主机中 2ee6554d89e0 --> mysql 的docker容器
+	[centos@localhost ~]$ sudo docker cp 2ee6554d89e0:/etc/mysql/my.cnf /home/centos/Documents/
+	宿主主机文件发送到docker容器中
+	sudo docker cp lock_problem.sh 1f1825ced322:/home/
+	# 创建表 (语句中的引号是反引号`，不是单引号’。需要注意的是，sqoop抓数据的时候会把类型转为string类型，所以mysql设计字段的时候，设置为varchar)
+	CREATE TABLE `dbtaobao`.`user_log` (`user_id` varchar(20),`item_id` varchar(20),`cat_id` varchar(20),`merchant_id` varchar(20),`brand_id` varchar(20), `month` varchar(6),`day` varchar(6),`action` varchar(6),`age_range` varchar(6),`gender` varchar(6),`province` varchar(10)) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+	
+# 如果使用sqoop 连接mysql, 最好mysql是与sqoop在同一集群节点上，如果mysql在其他非集群节点，则需要先设置节点与mysql所在节点能够免密互访，否则会报错 Unable to load authentication plugin 'caching_sha2_password'
+	# sqoop 连接 mysql
+	[hdfs@node4 sqoop]$ bin/sqoop list-databases --connect jdbc:mysql://127.0.0.1:3306 -username root -password root
+			19/12/07 14:59:35 INFO sqoop.Sqoop: Running Sqoop version: 1.4.6.2.6.3.0-235
+			19/12/07 14:59:35 WARN tool.BaseSqoopTool: Setting your password on the command-line is insecure. Consider using -P instead.
+			19/12/07 14:59:35 INFO manager.MySQLManager: Preparing to use a MySQL streaming resultset.
+			information_schema
+			klaus_db
+			mysql
+			performance_schema
+	# 隐式输入密码 参数 -P (UPCASE)
+	[hdfs@node4 sqoop]$ bin/sqoop list-databases --connect jdbc:mysql://localhost:3306 -username root -P
+	
+	# bin/sqoop export --connect jdbc:mysql://localhost:3306/dbtaobao --username root --password root --table user_log --export-dir '/apps/hive/warehouse/dbtaobao.db/inner_user_log' --fields-terminated-by ',';
+	字段解释：
+		./bin/sqoop export ##表示数据从 hive 复制到 mysql 中
+		–connect jdbc:mysql://localhost:3306/dbtaobao
+		–username root #mysql登陆用户名
+		–password root #登录密码
+		–table user_log #mysql 中的表，即将被导入的表名称
+		–export-dir ‘/user/hive/warehouse/dbtaobao.db/user_log ‘ #hive 中被导出的文件
+		–fields-terminated-by ‘,’ #Hive 中被导出的文件字段的分隔符
