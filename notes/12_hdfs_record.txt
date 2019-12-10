@@ -19,6 +19,11 @@ hdfs dfs -cat /spark/hellospark 	//查看hdfs上的文件
 hdfs dfs -cat hdfs://192.168.10.201/spark/hellospark 
 hdfs dfs -cat hdfs://192.168.10.201:8020/spark/hellospark7234	# 完整的hdfs目录
 
+
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> dbtaobao <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+# 文件目录
+[centos@node3 dataset]$ pwd
+/home/centos/Documents/lyu/dbtaobao/dataset
 # 创建目录
 [centos@node3 dataset]$ hdfs dfs -mkdir -p /lyu/dbtaobao/dataset/user_log
 # 将本地数据上传到hdfs
@@ -31,5 +36,16 @@ hdfs dfs -cat hdfs://192.168.10.201:8020/spark/hellospark7234	# 完整的hdfs目
 328862,406349,1280,2700,5476,11,11,2,6,0,台湾
 328862,406349,1280,2700,5476,11,11,0,6,2,甘肃
 cat: Unable to write to output stream.
+
+# train.csv和test.csv处理后的数据集保存至hdfs中
+[centos@node3 dataset]$ hdfs dfs -put /home/centos/Documents/lyu/dbtaobao/dataset/train_after.csv /lyu/dbtaobao/dataset
+[centos@node3 dataset]$ hdfs dfs -put /home/centos/Documents/lyu/dbtaobao/dataset/test_after.csv /lyu/dbtaobao/dataset
+[centos@node3 dataset]$ hdfs dfs -ls /lyu/dbtaobao/dataset
+Found 3 items
+-rw-r--r--   2 centos hdfs     175328 2019-12-09 14:39 /lyu/dbtaobao/dataset/test_after.csv
+-rw-r--r--   2 centos hdfs     175244 2019-12-09 14:39 /lyu/dbtaobao/dataset/train_after.csv
+drwxr-xr-x   - centos hdfs          0 2019-12-06 15:31 /lyu/dbtaobao/dataset/user_log
+
+
 
 

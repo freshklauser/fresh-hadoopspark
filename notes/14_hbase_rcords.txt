@@ -1,0 +1,34 @@
+>>>>>>>>>>>>>>>>>>>>>>>>>>>> hbase与mysql的互导见 9_sql_records.txt <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+hbase(main):015:0> desc 'user_log'
+Table user_log is ENABLED                                                                                                                                 
+user_log                                                                                                                                                  
+COLUMN FAMILIES DESCRIPTION                                                                                                                               
+{NAME => 'f1', BLOOMFILTER => 'ROW', VERSIONS => '5', IN_MEMORY => 'false', KEEP_DELETED_CELLS => 'FALSE', DATA_BLOCK_ENCODING => 'NONE', TTL => 'FOREVER'
+, COMPRESSION => 'NONE', MIN_VERSIONS => '0', BLOCKCACHE => 'true', BLOCKSIZE => '65536', REPLICATION_SCOPE => '0'}                                       
+1 row(s) in 0.0200 seconds
+
+hbase(main):016:0> status
+1 active master, 0 backup masters, 1 servers, 0 dead, 12.0000 average load
+
+hbase(main):017:0> version
+1.1.2.2.6.3.0-235, r6f982c8e667e7a18451fcbc12c5e2758b178ec78, Mon Oct 30 02:42:02 UTC 2017
+
+hbase(main):018:0> whoami
+hdfs (auth:SIMPLE)
+    groups: hadoop, hdfs
+
+hbase(main):019:0> describe 'user_log'
+Table user_log is ENABLED                                                                                                                                 
+user_log                                                                                                                                                  
+COLUMN FAMILIES DESCRIPTION                                                                                                                               
+{NAME => 'f1', BLOOMFILTER => 'ROW', VERSIONS => '5', IN_MEMORY => 'false', KEEP_DELETED_CELLS => 'FALSE', DATA_BLOCK_ENCODING => 'NONE', TTL => 'FOREVER'
+, COMPRESSION => 'NONE', MIN_VERSIONS => '0', BLOCKCACHE => 'true', BLOCKSIZE => '65536', REPLICATION_SCOPE => '0'}                                       
+1 row(s) in 0.0160 seconds
+
+hbase(main):020:0> list_namespace
+NAMESPACE                                                                                                                                                 
+default                                                                                                                                                   
+hbase                                                                                                                                                     
+2 row(s) in 0.0210 seconds
+

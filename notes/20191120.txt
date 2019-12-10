@@ -44,3 +44,44 @@
 
 6. linux两个node之间传文件
 	scp mongo.tar root@192.168.1.214:/home/centos/Documents/lyu/tars_docker_for_api
+	
+	
+7. spindle
+	采集程序C#，fs=100k Hz (100k points -- int32), 一个int占4个字节，100k points一共占 400000/1024=390.625 kb
+	即:1s --> 391 Kb, 1h --> 1407600 Kb --> 1375 Mb， 1day --> 32.3 Gb, 1year --> 11.5 Tb
+	
+	
+	
+	
+	
+# java 连接和关闭数据库方法定义
+    //连接数据库方法
+    public static void startConn(){
+        try{
+            Class.forName("com.mysql.jdbc.Driver");
+            //连接数据库中间件
+            try{
+                con = DriverManager.getConnection("jdbc:MySQL://localhost:3306/dbtaobao","root","root");
+            }catch(SQLException e){
+                e.printStackTrace();
+            }
+        }catch(ClassNotFoundException e){
+            e.printStackTrace();
+        }
+    }
+ 
+    //关闭连接数据库方法
+    public static void endConn() throws SQLException{
+        if(con != null){
+            con.close();
+            con = null;
+        }
+        if(rs != null){
+            rs.close();
+            rs = null;
+        }
+        if(stmt != null){
+            stmt.close();
+            stmt = null;
+        }
+    }

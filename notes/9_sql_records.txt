@@ -1,3 +1,13 @@
+# 授予/收回 对所有以klaus_开头的名称的数据库的用户klaus权限。
+# 注意：数据库名是不是用引号''，而是 键盘左上角的 ``, 用户名是用引号
+# workbench中，Scheme Privileges 中 输入  klaus\_% 也可
+mysql> GRANT ALL PRIVILEGES ON `klaus\_%`.* TO 'klaus'@'%';
+Query OK, 0 rows affected (0.03 sec)
+mysql> REVOKE ALL PRIVILEGES ON `klaus\_%` .  * FROM 'grace'@'%';
+Query OK, 0 rows affected (0.01 sec)
+# 刷新权限
+FLUSH PRIVILEGES;
+
 mysql:
 mysql> show databases;
 +--------------------+
@@ -18,10 +28,21 @@ mysql> show databases;
 +--------------------+
 | information_schema |
 | klaus_db           |
+| klaus_mypic        |
 | mysql              |
 | performance_schema |
 +--------------------+
 4 rows in set (0.00 sec)
+
+mysql> show databases like 'klaus_%';
++--------------------+
+| Database (klaus_%) |
++--------------------+
+| klaus_dbs          |
+| klaus_mypic        |
++--------------------+
+2 rows in set (0.01 sec)
+
 
 mysql> create table if not exists tb_hive(id INT UNSIGNED AUTO_INCREMENT, author VARCHAR(40), submission_date DATE, PRIMARY KEY(id)) DEFAULT CHARSET=utf8;
 Query OK, 0 rows affected (0.06 sec)
@@ -75,21 +96,34 @@ password=root
 
 
 
-# 更改docker部署的mysql的配置文件：修改当前编码为utf8
+>>>>>>>>>>>>>>>>>>>>>>>>> sqoop hive与mysql间数据迁移的中文编码问题 <<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+# 更改docker部署的mysql的配置文件：修改当前编码为utf8 
 	# 查看当前mysql编码
+	mysql> show variables like "%collation%";
+	+-------------------------------+--------------------+
+	| Variable_name                 | Value              |
+	+-------------------------------+--------------------+
+	| collation_connection          | latin1_swedish_ci  |
+	| collation_database            | utf8mb4_0900_ai_ci |
+	| collation_server              | utf8mb4_0900_ai_ci |
+	| default_collation_for_utf8mb4 | utf8mb4_0900_ai_ci |
+	+-------------------------------+--------------------+
+	4 rows in set (0.01 sec)
+
 	mysql> show variables like 'char%';
-	+--------------------------+----------------------------+
-	| Variable_name            | Value                      |
-	+--------------------------+----------------------------+
-	| character_set_client     | utf8                       |
-	| character_set_connection | utf8                       |
-	| character_set_database   | latin1                     |
-	| character_set_filesystem | binary                     |
-	| character_set_results    | utf8                       |
-	| character_set_server     | latin1                     |
-	| character_set_system     | utf8                       |
-	| character_sets_dir       | /usr/share/mysql/charsets/ |
-	+--------------------------+----------------------------+
+	+--------------------------+--------------------------------+
+	| Variable_name            | Value                          |
+	+--------------------------+--------------------------------+
+	| character_set_client     | latin1                         |
+	| character_set_connection | latin1                         |
+	| character_set_database   | utf8mb4                        |
+	| character_set_filesystem | binary                         |
+	| character_set_results    | latin1                         |
+	| character_set_server     | utf8mb4                        |
+	| character_set_system     | utf8                           |
+	| character_sets_dir       | /usr/share/mysql-8.0/charsets/ |
+	+--------------------------+--------------------------------+
+
 	8 rows in set (0.00 sec)
 	# 修改编码 character_set_server (这种方法重启会失效)
 	mysql> set character_set_server=utf8;
@@ -97,35 +131,154 @@ password=root
 	# 可以 修改配置文件 , 在[mysqld]下添加一行character_set_server=utf8
 	[centos@node4 ~]$ sudo vim /etc/my.cnf
 	---> [mysqld] 添加： character_set_server=utf8
-	# 重启mysql服务
-	service mysql restart
+
 	
 	# docker容器中文件发送到宿主主机中 2ee6554d89e0 --> mysql 的docker容器
-	[centos@localhost ~]$ sudo docker cp 2ee6554d89e0:/etc/mysql/my.cnf /home/centos/Documents/
-	宿主主机文件发送到docker容器中
-	sudo docker cp lock_problem.sh 1f1825ced322:/home/
+	[centos@localhost ~]$ sudo docker cp 2ee6554d89e0:/etc/mysql/my.cnf Documents/
+	# 添加内容：
+	# 修改MySQL配置文件/etc/my.cnf 并重启MySQL   ------>  IMPORTANT
+		# [mysqld] 下添加
+		collation-server = utf8_general_ci
+		character-set-server = utf8
+		# 最后一行新增以下两行
+		[client]
+		default-character-set=utf8  
+	# 宿主主机文件发送到docker容器中
+	[centos@localhost Documents]$ sudo docker cp my.cnf 2ee6554d89e0:/etc/mysql/
+	# 重启msyql
+	docker restart grace_mysql
+	
+	# 查看编码
+	mysql> show variables like 'char%';
+	+--------------------------+--------------------------------+
+	| Variable_name            | Value                          |
+	+--------------------------+--------------------------------+
+	| character_set_client     | utf8                           |
+	| character_set_connection | utf8                           |
+	| character_set_database   | utf8                           |
+	| character_set_filesystem | binary                         |
+	| character_set_results    | utf8                           |
+	| character_set_server     | utf8                           |
+	| character_set_system     | utf8                           |
+	| character_sets_dir       | /usr/share/mysql-8.0/charsets/ |
+	+--------------------------+--------------------------------+
+	8 rows in set (0.01 sec)
+
+	mysql> show variables like '%collation%';
+	+-------------------------------+--------------------+
+	| Variable_name                 | Value              |
+	+-------------------------------+--------------------+
+	| collation_connection          | utf8_general_ci    |
+	| collation_database            | utf8_general_ci    |
+	| collation_server              | utf8_general_ci    |
+	| default_collation_for_utf8mb4 | utf8mb4_0900_ai_ci |
+	+-------------------------------+--------------------+
+	4 rows in set (0.00 sec)
+
+
+
+
+# mysql8.0身份验证问题 caching_sha2_password
+	# 查询身份验证plugin
+	mysql> select host, user, plugin from mysql.user;
+	+-----------+------------------+-----------------------+
+	| host      | user             | plugin                |
+	+-----------+------------------+-----------------------+
+	| %         | grace            | caching_sha2_password |
+	| %         | klaus            | caching_sha2_password |
+	| %         | root             | caching_sha2_password |
+	| localhost | mysql.infoschema | caching_sha2_password |
+	| localhost | mysql.session    | caching_sha2_password |
+	| localhost | mysql.sys        | caching_sha2_password |
+	| localhost | root             | caching_sha2_password |
+	+-----------+------------------+-----------------------+
+	7 rows in set (0.00 sec)
+
+	# 修改身份验证plugin并刷新权限 (低版本默认:mysql_native_password, 高版本默认:caching_sha2_password)
+	mysql> alter user root identified with mysql_native_password by 'root';
+	mysql> alter user klaus identified with mysql_native_password by 'xxxxxxxxx';
+	mysql> flush privileges;
+
+	mysql> select host, user, plugin from mysql.user;
+	+-----------+------------------+-----------------------+
+	| host      | user             | plugin                |
+	+-----------+------------------+-----------------------+
+	| %         | grace            | caching_sha2_password |
+	| %         | klaus            | mysql_native_password |
+	| %         | root             | mysql_native_password |
+	| localhost | mysql.infoschema | caching_sha2_password |
+	| localhost | mysql.session    | caching_sha2_password |
+	| localhost | mysql.sys        | caching_sha2_password |
+	| localhost | root             | mysql_native_password |
+	+-----------+------------------+-----------------------+
+	7 rows in set (0.00 sec)
+	
+	
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 测试sqoop连接mysql <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+	# sqoop抓数据的时候会把类型转为string类型，所以mysql设计字段的时候，设置为varchar
+	# 当字段中有中文的时候，要特别注意
 	# 创建表 (语句中的引号是反引号`，不是单引号’。需要注意的是，sqoop抓数据的时候会把类型转为string类型，所以mysql设计字段的时候，设置为varchar)
-	CREATE TABLE `dbtaobao`.`user_log` (`user_id` varchar(20),`item_id` varchar(20),`cat_id` varchar(20),`merchant_id` varchar(20),`brand_id` varchar(20), `month` varchar(6),`day` varchar(6),`action` varchar(6),`age_range` varchar(6),`gender` varchar(6),`province` varchar(10)) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+	CREATE TABLE `dbtaobao`.`user_log` (`user_id` varchar(20),`item_id` varchar(20),`cat_id` varchar(20),`merchant_id` varchar(20),`brand_id` varchar(20), `month` varchar(6),`day` varchar(6),`action` varchar(6),`age_range` varchar(6),`gender` varchar(6),`province` varchar(30)) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 	
-# 如果使用sqoop 连接mysql, 最好mysql是与sqoop在同一集群节点上，如果mysql在其他非集群节点，则需要先设置节点与mysql所在节点能够免密互访，否则会报错 Unable to load authentication plugin 'caching_sha2_password'
-	# sqoop 连接 mysql
-	[hdfs@node4 sqoop]$ bin/sqoop list-databases --connect jdbc:mysql://127.0.0.1:3306 -username root -password root
-			19/12/07 14:59:35 INFO sqoop.Sqoop: Running Sqoop version: 1.4.6.2.6.3.0-235
-			19/12/07 14:59:35 WARN tool.BaseSqoopTool: Setting your password on the command-line is insecure. Consider using -P instead.
-			19/12/07 14:59:35 INFO manager.MySQLManager: Preparing to use a MySQL streaming resultset.
-			information_schema
-			klaus_db
-			mysql
-			performance_schema
+	[root@node4 sqoop]# bin/sqoop list-databases --connect jdbc:mysql://192.168.1.215:3306 -username klaus -P
+	19/12/09 09:24:31 INFO sqoop.Sqoop: Running Sqoop version: 1.4.6.2.6.3.0-235
+	Enter password: 
+	19/12/09 09:24:34 INFO manager.MySQLManager: Preparing to use a MySQL streaming resultset.
+	Mon Dec 09 09:24:34 CST 2019 WARN: Establishing SSL connection without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set useSSL=true and provide truststore for server certificate verification.
+	mysql
+	information_schema
+	performance_schema
+	sys
+	rddtable
+	grace_dbs
+	klaus_dbs
+	admin_test
+	klaus_mypic
+	WIFIProbeAnalysis
+	dbtaobao
 	# 隐式输入密码 参数 -P (UPCASE)
-	[hdfs@node4 sqoop]$ bin/sqoop list-databases --connect jdbc:mysql://localhost:3306 -username root -P
-	
-	# bin/sqoop export --connect jdbc:mysql://localhost:3306/dbtaobao --username root --password root --table user_log --export-dir '/apps/hive/warehouse/dbtaobao.db/inner_user_log' --fields-terminated-by ',';
+	[hdfs@node4 sqoop]$ bin/sqoop list-databases --connect jdbc:mysql://192.168.1.215:3306 -username root -P
+
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 使用Sqoop将数据从hive导入mysql <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+	# bin/sqoop export --connect jdbc:mysql://192.168.1.215:3306/dbtaobao --username root --password root --table user_log --export-dir '/apps/hive/warehouse/dbtaobao.db/inner_user_log' --fields-terminated-by ',';
 	字段解释：
 		./bin/sqoop export ##表示数据从 hive 复制到 mysql 中
-		–connect jdbc:mysql://localhost:3306/dbtaobao
+		–connect jdbc:mysql://192.168.1.215:3306/dbtaobao
 		–username root #mysql登陆用户名
 		–password root #登录密码
-		–table user_log #mysql 中的表，即将被导入的表名称
-		–export-dir ‘/user/hive/warehouse/dbtaobao.db/user_log ‘ #hive 中被导出的文件
+		–table user_log #mysql 中的表，即将被导入的表名称 (hive的数据导入到mysql的user_log表中)
+		–export-dir ‘/user/hive/warehouse/dbtaobao.db/user_log‘   # hive中被导出的文件路径
 		–fields-terminated-by ‘,’ #Hive 中被导出的文件字段的分隔符
+	
+
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 使用Sqoop将数据从MySQL导入HBase <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+	# 进入hbase命令行
+	[hdfs@node3 bin]$ hbase shell
+	# 创建表
+	hbase(main):010:0> create 'user_log', { NAME => 'f1', VERSIONS => 5}
+	0 row(s) in 1.2700 seconds
+	=> Hbase::Table - user_log
+	# 数据 count
+	hbase(main):012:0> count 'user_log'
+	0 row(s) in 0.0120 seconds
+	# sqoop从mysql导入数据到hbase
+	[root@node4 sqoop]# bin/sqoop import --connect jdbc:mysql://192.168.1.215:3306/dbtaobao --username root --password root --table user_log --hbase-table user_log --column-family f1 --hbase-row-key user_id --hbase-create-table -m 1
+	# 数据 count ---> 说明已经导入成功
+	hbase(main):014:0> count 'user_log'
+	358 row(s) in 0.0690 seconds
+	=> 358
+	# 表结构
+	hbase(main):015:0> desc 'user_log'
+	Table user_log is ENABLED                                                                                                                                 
+	user_log                                                                                                                                                  
+	COLUMN FAMILIES DESCRIPTION                                                                                                                               
+	{NAME => 'f1', BLOOMFILTER => 'ROW', VERSIONS => '5', IN_MEMORY => 'false', KEEP_DELETED_CELLS => 'FALSE', DATA_BLOCK_ENCODING => 'NONE', TTL => 'FOREVER'
+	, COMPRESSION => 'NONE', MIN_VERSIONS => '0', BLOCKCACHE => 'true', BLOCKSIZE => '65536', REPLICATION_SCOPE => '0'}                                       
+	1 row(s) in 0.0200 seconds
+
+	
+
+
+
+
+	
