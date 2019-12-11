@@ -1,0 +1,72 @@
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> cmd连接远程mongodb <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+# 启动服务  本地服務
+mongod --dbpath  /home/u1/mongodb/data  [--logpath  /home/u1/mongodb/log/logs  --fork --auth]
+# 停止服务 ： 必须进入admin数据库后停止
+user admin
+db.shutdownServer()
+
+# 连接远程mongodb
+> mongo 192.168.1.215:27017/admin -u <account> -p <password> # 授权登录并进入admin数据库
+
+use admin
+db.auth("spindle","spindle123456")
+
+> use runoob
+switched to db runoob
+> db.createCollection("runoob")     # 先创建集合，类似数据库中的表
+
+
+
+选择开发计算机上用于存储数据的目录。 例如，Windows 上的 C:\BooksData 。 创建目录（如果不存在）。 mongo Shell 不会创建新目录。
+
+打开命令行界面。 运行以下命令以连接到默认端口 27017 上的 MongoDB。 请记得将 <data_directory_path> 替换为上一步中选择的目录。
+console
+
+mongod --dbpath <data_directory_path>
+
+打开另一个命令行界面实例。 通过运行以下命令来连接到默认测试数据库：
+console
+
+mongo
+
+在命令行界面中运行下面的命令：
+console
+
+use BookstoreDb
+
+如果它不存在，则将创建名为 BookstoreDb 的数据库。 如果该数据库存在，则将为事务打开其连接。
+
+使用以下命令创建 Books 集合：
+console
+
+db.createCollection('Books')
+
+显示以下结果：
+console
+
+{ "ok" : 1 }
+
+使用以下命令定义 Books 集合的架构并插入两个文档：
+console
+
+db.Books.insertMany([{'Name':'Design Patterns','Price':54.93,'Category':'Computers','Author':'Ralph Johnson'}, {'Name':'Clean Code','Price':43.15,'Category':'Computers','Author':'Robert C. Martin'}])
+
+显示以下结果：
+console
+
+{
+  "acknowledged" : true,
+  "insertedIds" : [
+    ObjectId("5bfd996f7b8e48dc15ff215d"),
+    ObjectId("5bfd996f7b8e48dc15ff215e")
+  ]
+}
+
+备注
+
+本文所示的 ID 与运行此示例时的 ID 不匹配。
+
+使用以下命令查看数据库中的文档：
+console
+
+db.Books.find({}).pretty()

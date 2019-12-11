@@ -13,3 +13,18 @@ Ctrl+H (Navigate | Type Hierarchy) see the inheritance hierarchy for a selected 
 
 .var
 .sout
+
+模板：
+方法模板(class def ..):
+	Live Template: 模板名设置为 * ， 使用方法 /*+TAB
+	Template text:
+		*
+		* @Description: $description$ 
+		* @Param: $params$ 
+		* @date: $date$ $time$
+		* @return: $return$
+		*/ 
+		
+		
+		
+idea 重新加载项目后出现：错误: 找不到或无法加载主类 
