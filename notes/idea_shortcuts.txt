@@ -11,7 +11,7 @@ Ctrl+H (Navigate | Type Hierarchy) see the inheritance hierarchy for a selected 
 
 
 
-.var
+.var --> 快捷鍵：ctrl+alt+v
 .sout
 
 模板：
