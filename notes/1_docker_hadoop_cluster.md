@@ -527,9 +527,11 @@ slave2
       -6 强行使用 IPV6 地址 .
   ```
 
-## 9. 启动 hadoop
+## 9. 启动 hadoop  
 
-１）第一次启动时，需要在 namenode 服务器上先格式化，只需要一次即可
+安装位置：｀/usr/local/hadoop/bin｀
+
+1) 第一次启动时，需要在 namenode 服务器上先格式化，只需要一次即可
 
 ```
 hadoop namenode -format		# 这里的namenode就是namenode，不是master的主机hostname
