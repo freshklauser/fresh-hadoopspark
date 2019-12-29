@@ -1,0 +1,121 @@
+# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> java <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+# 1.
+tar -zxvf jdk-8u211-linux-x64.tar.gz
+mv jdk-8u211-linux-x64 /usr/local/java
+
+# 2.
+sudo vim .bashrc
+# add java environment of java as follows:
+export JAVA_HOME=/usr/local/java
+export JRE_HOME=${JAVA_HOME}/jre    
+export CLASSPATH=.:${JAVA_HOME}/lib:${JRE_HOME}/lib    
+export PATH=${JAVA_HOME}/bin:$PATH  
+
+# 3.
+sudo source .bashrc      # update environment 
+
+# 4.
+java -version		# test java install condition
+
+
+
+
+# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> zookeeper <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+# 1:
+tar -zxvf apache-zookeeper-3.5.6-bin.tar.gz 
+sudo mv apache-zookeeper-3.5.6-bin /usr/local/zookeeper
+
+# 2:
+mkdir -p /home/klaus/opt/zookeeper/data
+mkdir -p /home/klaus/opt/zookeeper/logs
+cd /usr/local/zookeeper/conf
+cp zoo_sample.cfg zoo.cfg
+vim zoo.cfg
+# --> dataDir=/home/klaus/opt/zookeeper/data
+# --> dataLogDir=/home/klaus/opt/zookeeper/logs		# need to mkdir in advance
+
+# 3.
+# check the status of zookeeper:
+./bin/zkServer.sh status
+# start zookeeper:
+./bin/zkServer.sh start
+	ZooKeeper JMX enabled by default
+	Using config: /usr/local/zookeeper/bin/../conf/zoo.cfg
+	Starting zookeeper ... STARTED
+
+# 4.
+# stop zookeeper:
+./zkServer.sh stop
+
+
+
+
+
+# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> kafka <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+# 1.
+tar -zxvf kafka_2.11-0.10.2.0.tgz 
+sudo mv kafka_2.11-0.10.2.0 /usr/local/kafka
+
+# 2.
+cd /usr/local/kafka/conf
+vim server.properties
+# main properties as follows:
+broker.id=0
+delete.topic.enable=true
+advertised.listeners=PLAINTEXT://localhost:9092
+log.dirs=/home/klaus/opt/kafka/kafka-logs
+zookeeper.connect=localhost:2181
+
+# 3. start kafka:
+./bin/kafka-server-start.sh -daemon ./config/server.properties		# daemon process if -daemon set
+
+# 4. create topic:
+./bin/kafka-topics.sh --zookeeper localhost:2181 --create --topic test --partitions 1 --replication-factor 1
+--> Created topic "test".
+
+# 5. list topics:
+./bin/kafka-topics.sh --zookeeper localhost:2181 --list
+
+# 6. console-producer:
+./bin/kafka-console-producer.sh --broker-list localhost:9092 --topic test
+
+# 7. console-consumer:
+./bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic test
+
+# 8. stop kafka:
+./bin/kafka-server-stop.sh ./config/server.properties
+
+
+
+
+
+# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> start-zk-kafka/stop-zk-kafka.sh <<<<<<<<<<<<<<<<<<<<<<<<<<<<
+# 1.
+vim start-zk-kafka.sh
+# content as follows: 
+	# /bin/sh
+	/usr/local/zookeeper/bin/zkServer.sh start &
+	/usr/local/kafka/bin/kafka-server-start.sh -daemon /usr/local/kafka/config/server.properties &
+
+
+# 2.
+vim stop-kafka-zk.sh
+# content as follows: 
+	# /bin/sh
+	/usr/local/kafka/bin/kafka-server-stop.sh /usr/local/kafka/config/server.properties
+	/usr/local/zookeeper/bin/zkServer.sh stop
+	
+
+
+
+# & means work in backend.
+
+#　NOTES:
+如果使用自己安装的zk，则不需要更改kafka的config文件下的zookeeper设置；
+反之，则只需要更改kafka中zookeeper的设置即可，不需要另外单独安装zk;
+这里使用的是自己安装的zk，因此不对kafka自带的zk做更改
+
+
+
+
+

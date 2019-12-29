@@ -47,9 +47,11 @@
 	
 	
 7. spindle
-	采集程序C#，fs=100k Hz (100k points -- int32), 一个int占4个字节，100k points一共占 400000/1024=390.625 kb
-	即:1s --> 391 Kb, 1h --> 1407600 Kb --> 1375 Mb， 1day --> 32.3 Gb, 1year --> 11.5 Tb
-	
+	1MB = 1024 KB
+	1KB = 1024 Byte
+	1Byte = 1024 bit
+	采集程序C#，fs=100k Hz (100k points -- int32), 一个int占4个字节 Byte (=4*8 bit)，100k points一共占 100000 * 4 Byte =  390.625 KB = 391 KB
+	即:1s --> 391 KB, 1h --> 1407600 KB --> 1375 MB， 1day --> 32.3 GB, 1month --> 1008 GB, 1year --> 11.8 TB = 12 T
 	
 	
 	

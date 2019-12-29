@@ -1,0 +1,66 @@
+1. scala 中打印数组(2种方法)
+	1) 使用foreach ：
+	val a = Array(1,2,3)
+	a.foreach(println)
+		scala> val a = Array(1,2,3)
+		a: Array[Int] = Array(1, 2, 3)
+
+		scala> println(a)
+		[I@764fffa0
+
+		scala> println(a.mkString(""))
+		123
+
+		scala> println(a.mkString("\n"))
+		1
+		2
+		3
+
+		scala> a.foreach(println)
+		1
+		2
+		3
+
+	2) 使用mkString ：
+	val a = Array(1,2,3)
+	println(a.mkString(""))
+
+	在Scala 2.8中，你可以使用deep在Array上定义的方法，该方法返回支持此数组的所有（可能嵌套的）元素的IndexedSeq，并在其上调用mkString：
+	scala> val arr = Array(Array(1,2,3,4), Array(11,22,33,44))
+	arr: Array[Array[Int]] = Array(Array(1, 2, 3, 4), Array(11, 22, 33, 44))
+
+	scala> println(arr)
+	[[I@4604b900
+
+	scala> println(arr.deep.mkString("\n"))
+	Array(1, 2, 3, 4)
+	Array(11, 22, 33, 44)
+
+
+2. scala 会自动将最后一个表达式的结果作为返回结果
+
+3. Map 和 HashMap的本质区别
+	Map is a interface
+	HashMap is a class that implements that interface.
+	that is the basic different. 
+	map是接口，不能用new出对象，map下面的实现类不是只有xxxMap的，hashtable也是
+	HashMap是继承map接口的实现类，可以new出对象；
+	HashMap是采用key的hashCode分组而实现的一种Map;
+	HashMap的特点是查找速度快，缺点是不能保证迭代的顺序;
+	若要保证HashMap的迭代顺序，就需要用 LinkedHashMap
+	
+4. Option类型的值通常作为Scala集合类型（List,Map等）操作的返回类型。比如Map的get方法：
+	scala> val capitals = Map("France"->"Paris", "Japan"->"Tokyo", "China"->"Beijing")
+	capitals: scala.collection.immutable.Map[String,String] = Map(France -> Paris, Japan -> Tokyo, China -> Beijing)
+
+	scala> capitals get "France"
+	res0: Option[String] = Some(Paris)
+
+	scala> capitals get "North Pole"
+	res1: Option[String] = None
+
+	Option有两个子类别，Some和None。
+		当程序回传Some的时候，代表这个函式成功地给了你一个String，而你可以透过get()函数拿到那个String，
+		如果程序返回的是None，则代表没有字符串可以给你。
+
+		

@@ -70,3 +70,47 @@ console
 console
 
 db.Books.find({}).pretty()
+
+
+# 进入容器mongodb中的admin数据库并新建用户
+[centos@localhost ~]$ docker exec -it mongodb mongo admin
+MongoDB shell version v4.2.1
+connecting to: mongodb://127.0.0.1:27017/admin?compressors=disabled&gssapiServiceName=mongodb
+xxxxx
+
+> db.createUser({user:"spindle", pwd:"spindle123456", roles:["userAdminAnyDatabase", "dbAdminAnyDatabase", "readWriteAnyDatabase"]});
+
+# 测试是否创建和配置用户成功 （window下远程连接）
+C:\Users\Wang>mongo 192.168.1.214:27017/admin
+> show dbs	
+> db.auth("spindle","spindle123456")
+1
+> show dbs
+admin   0.000GB xxxx
+
+> use SpindlestoreDb
+switched to db SpindlestoreDb
+> db.dropDatabase()
+{ "dropped" : "SpindlestoreDb", "ok" : 1 }
+
+
+索引：
+	1、查看集合索引
+	db.col.getIndexes()
+	2、查看集合索引大小
+	db.col.totalIndexSize()
+	3、删除集合所有索引
+	db.col.dropIndexes()
+	4、删除集合指定索引
+	db.col.dropIndex("索引名称")
+	5. 创建索引
+	db.collection.createIndex(keys, options)
+	语法中 Key 值为你要创建的索引字段，1 为指定按升序创建索引，如果你想按降序来创建索引指定为 -1 即可。
+	eg.
+		db.col.createIndex({"title":1})									# title 字段 升序创建索引
+		db.col.createIndex({"title":1,"description":-1})				# 多字段索引，混合索引
+		db.col.createIndex({"createDate": 1},{expireAfterSeconds: 180})	# TTL索引，过期自动删除， 第二个参数{}为option
+	TTL索引注意事项：
+		1) 索引关键字段必须是 Date 类型。
+		2) 非立即执行：扫描 Document 过期数据并删除是独立线程执行，默认 60s 扫描一次，删除也不一定是立即删除成功。
+		3) 单字段索引，混合索引不支持。

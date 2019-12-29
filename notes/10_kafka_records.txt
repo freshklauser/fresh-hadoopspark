@@ -226,3 +226,24 @@ Kafka消息数据积压，消费能力不足怎么处理？
 [cluster, registry, controller, brokers, zookeeper, hbase-unsecure, admin, isr_change_notification, hiveserver2, controller_epoch, rmstore, consumers, ambari-metrics-cluster, config, hbase]
 
 
+
+# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> kafkaProducer <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+future = producer.send(topic, value)
+返回值 future 类型：FutureRecordMetadata (FutureRecordMetadata是继承了 Future 的类)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

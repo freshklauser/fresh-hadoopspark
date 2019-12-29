@@ -1,0 +1,55 @@
+# 1. 配置文件(安装环境java配置)
+cp  flume-env.sh.template  flume-env.sh
+vim conf/flume-env.sh
+JAVA_HOME=/usr/local/java
+
+# 2. sources,channels,sinks配置
+cd  /usr/local/flume/conf    
+mkdir log-kafka.properties
+
+	[centos@localhost flume]$ cat conf/log-kafka.properties 
+
+	# >>>>>>>>>>  Name the components on this agent <<<<<<<<<<
+	agent.sources = exectail
+	agent.channels = memoryChannel
+	agent.sinks = kafkasink
+
+	# >>>>>>>>>> Describe/configure the source <<<<<<<<<<<
+	agent.sources.exectail.type = exec
+	# 下面这个路径是需要收集日志的绝对路径，改为自己的日志目录
+	# tail -f <file> : -f 表示循环读取， 循环读取<file>最后10行内容
+	agent.sources.exectail.command = tail -f /home/centos/flume_logs/agent.log
+	# 拦截器？？
+	agent.sources.exectail.interceptors = i1
+	agent.sources.exectail.interceptors.i1.type = regex_filter
+	# 定义日志过滤前缀的正则
+	agent.sources.exectail.interceptors.i1.regex = .+PRODUCT_RATING_PREFIX.+
+
+	# >>>>>>>>>> define channels <<<<<<<<<<<
+	agent.channels.memoryChannel.type = memory
+	agent.channels.memoryChannel.capacity = 10000 
+
+	# >>>>>>>>>> define sinks <<<<<<<<<<<
+	agent.sinks.kafkasink.type = org.apache.flume.sink.kafka.KafkaSink
+	agent.sinks.kafkasink.kafka.topic = log
+	agent.sinks.kafkasink.kafka.bootstrap.servers = 192.168.1.213:6667
+	agent.sinks.kafkasink.kafka.producer.acks = 1
+	agent.sinks.kafkasink.kafka.flumeBatchSize = 20
+
+	# >>>>>>>>>> Bind the sources and sinks to the channels  <<<<<<<<<<<
+	agent.sources.exectail.channels = memoryChannel
+	agent.sinks.kafkasink.channel = memoryChannel
+	# tips: source:channel = 1:n ; sink:chanel=1:1, 因此source用channels, sink用channel
+
+
+
+
+# 3. 启动flume
+[centos@localhost flume]$ ./bin/flume-ng agent -c ./conf/ -f ./conf/log-kafka.properties -n agent -Dflume.root.logger=INFO,console
+	-n agent: 指定agent名 ，-n 	Agent的名称（必填）
+	-c ./conf/: 在目录使用配置文件。指定配置文件放在什么目录, 也可以 --conf
+	-f ./conf/log-kafka.properties：指定配置文件，这个配置文件必须在全局选项的–conf参数定义的目录下。（必填）
+	-Dflume.root.logger=INFO,console：将日志输入到控制台上
+	
+	
+	
