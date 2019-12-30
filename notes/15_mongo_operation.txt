@@ -72,6 +72,8 @@ console
 db.Books.find({}).pretty()
 
 
+docker run -d --name mongodb -p 27017:27017 -v /opt/mongodatastore/mongodb:/data/db mongo --auth
+
 # 进入容器mongodb中的admin数据库并新建用户
 [centos@localhost ~]$ docker exec -it mongodb mongo admin
 MongoDB shell version v4.2.1

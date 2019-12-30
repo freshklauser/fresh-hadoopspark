@@ -17,6 +17,9 @@ sudo source .bashrc      # update environment
 # 4.
 java -version		# test java install condition
 
+# 5. 如果系統默认的java, 无法使用 jps 命令, 解决方法：
+yum install java-1.8.0-openjdk-devel.x86_64
+
 
 
 
@@ -62,7 +65,7 @@ vim server.properties
 # main properties as follows:
 broker.id=0
 delete.topic.enable=true
-advertised.listeners=PLAINTEXT://localhost:9092
+advertised.listeners=PLAINTEXT://192.168.0.102:9092
 log.dirs=/home/klaus/opt/kafka/kafka-logs
 zookeeper.connect=localhost:2181
 
@@ -77,10 +80,10 @@ zookeeper.connect=localhost:2181
 ./bin/kafka-topics.sh --zookeeper localhost:2181 --list
 
 # 6. console-producer:
-./bin/kafka-console-producer.sh --broker-list localhost:9092 --topic test
+./bin/kafka-console-producer.sh --broker-list 192.168.0.102:9092 --topic test
 
 # 7. console-consumer:
-./bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic test
+./bin/kafka-console-consumer.sh --bootstrap-server 192.168.0.102:9092 --topic test
 
 # 8. stop kafka:
 ./bin/kafka-server-stop.sh ./config/server.properties
