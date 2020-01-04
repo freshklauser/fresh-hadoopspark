@@ -63,4 +63,9 @@
 		当程序回传Some的时候，代表这个函式成功地给了你一个String，而你可以透过get()函数拿到那个String，
 		如果程序返回的是None，则代表没有字符串可以给你。
 
-		
+	
+5. tuple --> array --> rdd --> DF / DS
+val optedParamsTuple: (Int, Int, Double, Double) = result.minBy(_._4)
+val optedParamsArray: Array[(Int, Int, Double, Double)] = Iterator(optedParamsTuple).toArray
+val optedParamsRdd: RDD[(Int, Int, Double, Double)] = new SparkContext(sparkConf).parallelize(optedParams)
+

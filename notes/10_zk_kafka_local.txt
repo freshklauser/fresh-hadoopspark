@@ -120,5 +120,11 @@ vim stop-kafka-zk.sh
 
 
 
+# 查看端口情况
+[centos@localhost kafka]$ sudo netstat -ntulp|grep 9092
+tcp6       0      0 192.168.13.128:9092     :::*                    LISTEN      13239/java          
+[centos@localhost kafka]$ sudo netstat -ntulp|grep 2181
+tcp6       0      0 :::2181                 :::*                    LISTEN      12935/java 
+
 
 
