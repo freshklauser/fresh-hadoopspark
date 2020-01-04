@@ -5,7 +5,7 @@ JAVA_HOME=/usr/local/java
 
 # 2. sources,channels,sinks配置
 cd  /usr/local/flume/conf    
-mkdir log-kafka.properties
+vim log-kafka.properties
 
 	[centos@localhost flume]$ cat conf/log-kafka.properties 
 
@@ -52,4 +52,24 @@ mkdir log-kafka.properties
 	-Dflume.root.logger=INFO,console：将日志输入到控制台上
 	
 	
-	
+# >>>>>>>>>>>>>>>> windows目录挂载到linux <<<<<<<<<<<<<<<<<
+由于测试环境下 埋点日志 在windows系统下，flume在linux系统下，flume的source监控的日志需要先挂载到linux
+todo: 埋点日志除了设置本地外，也可以直接设置为hadoop路径(应该需要复制hadoop的属性文件到resources中)
+# 1.
+	businessServer的resources中log4j日志，设置埋点日志本地路径：
+	G:\demo\DEMO_2\ECommerceRecommendSystem\businessServer\src\main\log\agent.log
+# 2.
+1). 先在 Windows 下面共享需要挂载的目录
+    右键需要共享的文件夹 , 选择共享 , 然后默认设置就可以
+    然后在其他的机器测试是否能正常访问 , 在其他机器资源管理器里面输入 \\xxx.xxx.xxx.xxx\Share , 地址格式是 \\你的IP\你的共享文件夹
+    出现无法访问或者指定的密码不正确时 , 可参考如下设置 :
+    修改网络安全设置 : 开始 -> 运行 gpedit.msc , 打开组策略 -> 计算机配置 -> Windows设置 -> 安全设置 -> 本地策略 -> 安全选项 -> 
+	选择 “网络安全 : LAN 管理器身份验证级别” , 双击打开 , 设置成“发送 LM 和 NTLM 响应” ;
+    修改网络访问模型 : 开始 -> 运行 -> gpedit.msc -> 计算机配置 -> Windows设置 -> 安全设置 -> 本地策略 -> 安全选项 -> 选择 “网络访问:本地帐户的共享和安全模型” , 修改为使用经典模式 ;
+
+2). linux下挂载windows的共享目录：
+	[centos@master ~]$ sudo mount -t cifs -o username=Administrator,password=foxconn9662 //10.180.164.135/log/ /home/centos/flume-logs/log/
+	df -h # 查看挂载情况
+
+3). 卸载挂载：
+	umount /usr/local/bin/code

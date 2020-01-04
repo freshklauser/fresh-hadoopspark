@@ -1,0 +1,1 @@
+1. 在VMware Workstation中，默认有3个虚拟交换机，分别是VMnet0（使用桥接网络）、VMnet1（仅主机网络）和VMnet8（NAT网络）
