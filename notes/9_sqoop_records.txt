@@ -1,0 +1,18 @@
+# 1. docker中的hadoop由于事先没有挂载配置文件到宿主机, 就直接在docker中安装sqoop
+	(sqoop的配置文件需要设置hadoop, hive, hbase等的路径)
+	拷贝到master容器中进行解压缩，然后配置参数(hive,hbase也就需要在hadoop中安装)
+--> 考虑：
+	hive　hbase　sqoop　kafka　都用docker安装，然后通过docker互联实现配置文件(略麻烦)
+	
+--> 直接按官方文档安装伪分布式hadoop，测试环境不使用docker的hadoop集群
+
+
+# 2. 参数配置
+sqoop-env.sh: 
+export HADOOP_COMMON_HOME=/opt/module/hadoop-2.7.2		# 设置成自己的相对应的hadoop/hive/zk/hbase的目录路径
+export HADOOP_MAPRED_HOME=/opt/module/hadoop-2.7.2
+export HIVE_HOME=/opt/module/hive
+export ZOOKEEPER_HOME=/opt/module/zookeeper-3.4.10
+export ZOOCFGDIR=/opt/module/zookeeper-3.4.10
+export HBASE_HOME=/opt/module/hbase
+
