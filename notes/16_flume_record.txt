@@ -1,13 +1,13 @@
-# 1. 配置文件(安装环境java配置)
-cp  flume-env.sh.template  flume-env.sh
+	# 1. 配置文件(安装环境java配置)
+cp  flume-env.sh.template  flume-encov.sh
 vim conf/flume-env.sh
 JAVA_HOME=/usr/local/java
 
 # 2. sources,channels,sinks配置
-cd  /usr/local/flume/conf    
-mkdir log-kafka.properties
+cd  /usr/local/flume/conf
+vim log-kafka.properties
 
-	[centos@localhost flume]$ cat conf/log-kafka.properties 
+	[centos@localhost flume]$ cat conf/log-kafka.properties
 
 	# >>>>>>>>>>  Name the components on this agent <<<<<<<<<<
 	agent.sources = exectail
@@ -27,7 +27,7 @@ mkdir log-kafka.properties
 
 	# >>>>>>>>>> define channels <<<<<<<<<<<
 	agent.channels.memoryChannel.type = memory
-	agent.channels.memoryChannel.capacity = 10000 
+	agent.channels.memoryChannel.capacity = 10000
 
 	# >>>>>>>>>> define sinks <<<<<<<<<<<
 	agent.sinks.kafkasink.type = org.apache.flume.sink.kafka.KafkaSink
@@ -50,6 +50,5 @@ mkdir log-kafka.properties
 	-c ./conf/: 在目录使用配置文件。指定配置文件放在什么目录, 也可以 --conf
 	-f ./conf/log-kafka.properties：指定配置文件，这个配置文件必须在全局选项的–conf参数定义的目录下。（必填）
 	-Dflume.root.logger=INFO,console：将日志输入到控制台上
-	
-	
-	
+
+

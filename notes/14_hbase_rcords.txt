@@ -1,3 +1,5 @@
+HBase的安装和配置详见　尚硅谷的pdf资料
+
 >>>>>>>>>>>>>>>>>>>>>>>>>>>> hbase与mysql的互导见 9_sql_records.txt <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
 hbase(main):015:0> desc 'user_log'
