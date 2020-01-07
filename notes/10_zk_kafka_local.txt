@@ -96,17 +96,17 @@ zookeeper.connect=localhost:2181
 # 1.
 vim start-zk-kafka.sh
 # content as follows: 
-	# /bin/sh
-	/usr/local/zookeeper/bin/zkServer.sh start &
-	/usr/local/kafka/bin/kafka-server-start.sh -daemon /usr/local/kafka/config/server.properties &
+# /bin/sh
+/usr/local/zookeeper/bin/zkServer.sh start &
+/usr/local/kafka/bin/kafka-server-start.sh -daemon /usr/local/kafka/config/server.properties &
 
 
 # 2.
 vim stop-kafka-zk.sh
 # content as follows: 
-	# /bin/sh
-	/usr/local/kafka/bin/kafka-server-stop.sh /usr/local/kafka/config/server.properties
-	/usr/local/zookeeper/bin/zkServer.sh stop
+# /bin/sh
+/usr/local/kafka/bin/kafka-server-stop.sh /usr/local/kafka/config/server.properties
+/usr/local/zookeeper/bin/zkServer.sh stop
 	
 
 
