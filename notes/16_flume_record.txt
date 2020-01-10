@@ -68,8 +68,9 @@ todo: 埋点日志除了设置本地外，也可以直接设置为hadoop路径(�
     修改网络访问模型 : 开始 -> 运行 -> gpedit.msc -> 计算机配置 -> Windows设置 -> 安全设置 -> 本地策略 -> 安全选项 -> 选择 “网络访问:本地帐户的共享和安全模型” , 修改为使用经典模式 ;
 
 2). linux下挂载windows的共享目录：
-	[centos@master ~]$ sudo mount -t cifs -o username=Administrator,password=foxconn9662 //10.180.164.135/log/ /home/centos/flume-logs/log/
-	df -h # 查看挂载情况
+	[centos@master ~]$ sudo mount -t cifs -o username=Administrator,password=szlh.2020 //10.180.164.137/demo /mnt/G/demo/
+	df -h # 查看挂载情况   不要用 -lh
 
 3). 卸载挂载：
 	umount /usr/local/bin/code
+
