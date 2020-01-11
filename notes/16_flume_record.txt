@@ -167,7 +167,7 @@ netcat-flume-logger.properties
 	1) a1.sources.r1.bind = localhost 或 a1.sources.r1.bind = <本机ip>, 貌似只能是本机的netcat, 其他ip无法bind
 	
 
-5. 
+5. >>>>>>>>>>>>>>>>>>>>>>> netcat-flume-logger <<<<<<<<<<<<<<<<<<<<<<<<<<<
 
 	
 
