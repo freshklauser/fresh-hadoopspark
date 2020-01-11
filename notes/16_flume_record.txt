@@ -73,4 +73,101 @@ todo: 埋点日志除了设置本地外，也可以直接设置为hadoop路径(�
 
 3). 卸载挂载：
 	umount /usr/local/bin/code
+	
+	
+# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> flum course <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+1. netcat 安裝和使用
+源码编译安裝：
+	下载地址：http://sourceforge.net/projects/netcat/files/netcat/0.7.1/（下载的是netcat-0.7.1.tar.gz版本）
+	wget https://sourceforge.net/projects/netcat/files/netcat/0.7.1/netcat-0.7.1.tar.gz
+	sudo tar -zxvf netcat-0.7.1.tar.gz -C /usr/local
+	sudo mv netcat-0.7.1 netcat
+	cd /usr/local/netcat
+	# 配置，将安装文件放在 /opt/netcat 目录下，卸载时，只要删除该目录即可
+	./configure --prefix=/opt/netcat
+	# 编译安装, 之后会创建 /opt/netcat 安装文件夹
+	sudo make
+	sudo make install
+	# 添加环境配置
+	su root
+	vim /etc/profile
+		# set  netcat path
+		export NETCAT_HOME=/opt/netcat
+		export PATH=$PATH:$NETCAT_HOME/bin
+	# 使配置生效
+	source /etc/profile
+	# 检验安装是否成功
+	nc --help
+	# 退出root用戶
+	
+监听端口4444是否被占用：
+	sudo netcat -ntulp | grep 4444
+	
+2. netcat 参数
+	参数 	作用
+	-g 	<网关> 设置路由器跃程通信网关，最多可设置8个
+	-G  指向器数目 	设置来源路由指向器，其数值为4的倍数
+	-h 	在线帮助；
+	-i  延迟秒数 	设置时间间隔，以便传送信息及扫描通信端口；
+	-l 	使用监听模式，管控传入的资料；
+	-n 	直接使用IP地址，而不通过域名服务器；
+	-o  输出文件 	指定文件名称，把往来传输的数据以16进制字码倾倒成该文件保存；
+	-p  通信端口 	设置本地主机使用的通信端口；
+	-r 	乱数指定本地与远端主机的通信端口；
+	-s  来源位址 	设置本地主机送出数据包的IP地址；
+	-u 	使用UDP传输协议扫描，不加默认为TCP扫描；
+	-v 	显示指令执行过程；
+	-w  超时秒数 	设置等待连线的时间；
+	-z 	使用0输入/输出模式，只在扫描通信端口时使用。
+	-e 	program to exec after connect
+	-c 	as `-e’; use /bin/sh to exec
+
+	
+3. 聊天
+发送端：侦听服务器
+	[centos@node4 ~]$ nc -l -p 5522
+	hello
+	st
+	...
+	注：-l 侦听，-p 指定端口号
+接收端：
+	[centos@node5 ~]$ nc -nv 192.168.1.214 5522
+	192.168.1.214 5522 open
+	hello
+	st
+	
+4.  >>>>>>>>>>>>>>>>>>>>>>> netcat-flume-logger <<<<<<<<<<<<<<<<<<<<<<<<<<<
+netcat-flume-logger.properties
+	# Name the componets on this agent: a1
+	a1.sources = r1
+	a1.sinks = k1
+	a1.channels = c1
+
+	# Decribe/configure the source
+	a1.sources.r1.type = netcat
+	a1.sources.r1.bind = localhost
+	a1.sources.r1.port = 4444
+
+	# Describe the sink 
+	a1.sinks.k1.type = logger
+
+	# Use a channel which buffers events in memory
+	a1.channels.c1.type = memory
+	a1.channels.c1.capacity = 1000
+	a1.channels.c1.transactionCapacity = 100
+
+	# Bind the source and sink to the channel 
+	a1.sources.r1.channels = c1
+	a1.sinks.k1.channel = c1
+启动flume:
+	[centos@node5 flume]$ ./bin/flume-ng agent -n a1 -c ./conf/ -f ./job/netcat-flume-log.properties -Dflume.root.logger=INFO,console
+启动(flume先启动，再开启nc, 发送端):
+	[centos@node5 flume]$ nc localhost 4444
+注意：
+	1) a1.sources.r1.bind = localhost 或 a1.sources.r1.bind = <本机ip>, 貌似只能是本机的netcat, 其他ip无法bind
+	
+
+5. 
+
+	
 
