@@ -1,0 +1,18 @@
+1. 在linux下查询java完整安装路径 (java路径有时候隐藏太深)
+	[root@node2 ~]# whereis java
+	java: /usr/bin/java /usr/lib/java /etc/java /usr/share/java /usr/share/man/man1/java.1.gz
+	[root@node2 ~]# ls -lrt /usr/bin/java
+	lrwxrwxrwx 1 root root 22 Oct 24 14:23 /usr/bin/java -> /etc/alternatives/java
+	[root@node2 ~]# ls -lrt /etc/alternatives/java
+	lrwxrwxrwx 1 root root 73 Oct 24 14:23 /etc/alternatives/java -> /usr/lib/jvm/java-1.8.0-openjdk-1.8.0.232.b09-0.el7_7.x86_64/jre/bin/java
+	
+	[root@node2 ~]# cd /usr/lib/jvm/java-1.8.0-openjdk-1.8.0.232.b09-0.el7_7.x86_64/
+	[root@node2 java-1.8.0-openjdk-1.8.0.232.b09-0.el7_7.x86_64]# ll
+	total 4
+	drwxr-xr-x 2 root root 4096 Oct 24 14:23 bin
+	drwxr-xr-x 3 root root  132 Oct 24 14:23 include
+	drwxr-xr-x 4 root root   28 Oct 24 14:23 jre
+	drwxr-xr-x 3 root root  144 Oct 24 14:23 lib
+	drwxr-xr-x 2 root root  204 Oct 24 14:23 tapset
+	[root@node2 java-1.8.0-openjdk-1.8.0.232.b09-0.el7_7.x86_64]# 
+然后可以添加JAVA_HOME
