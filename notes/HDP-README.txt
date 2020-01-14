@@ -62,7 +62,7 @@ idea打包-->提交yarn集群运算
 	--master yarn \
 	--deploy-mode cluster 
 	./upload-lyu/WordCount-jar-with-dependencies.jar \
-	/lyu/input/word.txt \			# hdfs的文件目录
+	/lyu/input/word.txt \			# hdfs的文件目录 <----------------- 注意这里的文件路径是hdfs路径
 	/lyu/output/wordcount-output	# hdfs的文件目录，wordcount-output在运行前必须不能存在
 	
 	bin/spark-submit --class func.gender.core.GenderStatisticV1 --master yarn --deploy-mode cluster ./upload-lyu/ShoppingRealTimeDashBorad-1.0.jar 192.168.1.212:2181 1 gender-shopping 1

@@ -1,3 +1,39 @@
-maven打包jar ，參考 youtube上 尚硅谷的 課程 21 Spark之編碼打包到集群
 
 idea中查看源碼：双击函数进入 .class 文件后，点击 “Download Sources”
+
+
+# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> maven项目 <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+1. maven项目出现缓存问题，比如Temp文件夹下缓存文件无法删除等
+	File --> Invalidate
+	
+	
+	
+2. 警告warn：Using platform encoding (UTF-8 actually) to copy filtered resources
+异常情况：
+	warn：Using platform encoding (UTF-8 actually) to copy filtered resources
+解决方法：
+	在pom文件的<properties></properties>中添加内容，添加后如下：
+	<project>  
+	  ...  
+	  <properties>  
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>  
+	  </properties>  
+	  ...  
+	</project>  
+
+
+
+3. 警告warn: Multiple versions of scala libraries detected!
+异常情况：
+	......
+	[WARNING]  org.apache.spark:spark-core_2.11:2.3.1 requires scala version: 2.11.8
+	[WARNING]  org.json4s:json4s-jackson_2.11:3.2.11 requires scala version: 2.11.0
+	[WARNING] Multiple versions of scala libraries detected!
+原因：
+		使用的spark版本2.1.1， spark-core_2.11.2.1.1
+		查看 spark-core_2.11.2.1.1 的 Compile Dependencies (47) 中有org.json4s:json4s-jackson_2.11:3.2.11.jar, 该jar包的Compile Dependencies (3)依赖
+	的org.scala-lang » scala-library 版本为 scala-2.11.0, 与spark版本冲突，因此需要显式地在pom文件中引用 依赖于scala-2.11.8的scala-library的json4s-jackson_2.11.xxx.jar
+	从maven repository中查看可知json4s-jackson_2.11:3.5.0依赖的是scala-2.11.8的scala-library.
+解决方法：
+	在 pom 文件中添加 json4s-jackson_2.11:3.5.0 的依赖引用：
+	
