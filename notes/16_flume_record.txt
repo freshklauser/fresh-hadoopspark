@@ -3,6 +3,7 @@ cp  flume-env.sh.template  flume-env.sh
 vim conf/flume-env.sh
 JAVA_HOME=/usr/local/java
 
+# >>>>>>>>>>>>>>>>>>>>>>> log-flume-kafka <<<<<<<<<<<<<<<<<<<<<<<<<<<
 # 2. sources,channels,sinks配置
 cd  /usr/local/flume/conf    
 vim log-kafka.properties
@@ -169,5 +170,200 @@ netcat-flume-logger.properties
 
 5. >>>>>>>>>>>>>>>>>>>>>>> netcat-flume-logger <<<<<<<<<<<<<<<<<<<<<<<<<<<
 
-	
 
+
+6. >>>>>>>>>>>>>>>>>>>>>>> log-flume-hdfs <<<<<<<<<<<<<<<<<<<<<<<<<<<
+前提：hadoop相关jar包需要拷贝到 flume/lib中
+	commons-configuration-1.6.jar、
+	hadoop-auth-2.7.2.jar、
+	hadoop-common-2.7.2.jar、
+	hadoop-hdfs-2.7.2.jar、
+	commons-io-2.4.jar、
+	htrace-core-3.1.0-incubating.jar
+
+log-flume-hdfs.conf:
+	# Name the components on this agent
+	a2.sources = r2
+	a2.sinks = k2
+	a2.channels = c2
+
+
+	# Describe/configure the source
+	a2.sources.r2.type = exec
+	a2.sources.r2.command = tail -F /mnt/G/demo/DEMO_2/ECommerceRecommendSystem/businessServer/src/main/log/agent.log
+	a2.sources.r2.shell = /bin/bash -c
+
+
+	# Describe the sink
+	a2.sinks.k2.type = hdfs
+	a2.sinks.k2.hdfs.path = hdfs://master:9000/lyu/flume/%Y%m%d/%H
+	# 上传文件的前缀
+	a2.sinks.k2.hdfs.filePrefix = logs-
+	# hive中一天数据一个分区？滚动文件夹设置为以天为单位，则一天的数据在一个文件夹中，很方便load数据对应hive一个分区？
+
+	# 是否按照时间滚动《文件夹》
+	a2.sinks.k2.hdfs.round = true
+	# 多少时间单位创建一个新的文件夹
+	a2.sinks.k2.hdfs.roundValue = 1
+	# 重新定义时间单位
+	a2.sinks.k2.hdfs.roundUnit = hour		# flume/%Y%m%d/%H，这里是H，对应设置 roundUnit=hour
+
+	# 是否使用本地时间戳，这里必须有
+	a2.sinks.k2.hdfs.useLocalTimeStamp = true
+	
+	# key: 必须
+	a2.sinks.k2.hdfs.minBlockReplicas=1
+
+	# 批大小：积攒多少个 Event 才 flush 到 HDFS 一次
+	a2.sinks.k2.hdfs.batchSize = 1000
+
+	# 设置文件类型，可支持压缩
+	a2.sinks.k2.hdfs.fileType = DataStream
+
+	# -------------- 以下3个满足其中之一就会生成新文件 ------------
+	# 多久生成一个新的《文件》，单位：秒, 生产中不能设置这么短时间，小文件太多
+	a2.sinks.k2.hdfs.rollInterval = 30
+	# 设置每个文件的滚动大小，一般生产中设置为 hdfs 的块大小,比块大小略小一些(128M)
+	a2.sinks.k2.hdfs.rollSize = 134217700
+	# 文件的滚动与 Event 数量无关, 生产中一般关闭rollCount
+	a2.sinks.k2.hdfs.rollCount = 0
+
+
+	# Use a channel which buffers events in memory
+	a2.channels.c2.type = memory
+	a2.channels.c2.capacity = 1000
+	a2.channels.c2.transactionCapacity = 100
+
+
+	# Bind the source and sink to the channel
+	a2.sources.r2.channels = c2
+	a2.sinks.k2.channel = c2
+	
+启动fluem运行agent:a2
+	[centos@master flume]$ ./bin/flume-ng agent -n a2 -c ./conf/ -f ./job/log-flume-hdfs.conf
+hdfs文件系统中出现文件夹：/lyu/flume/20200114/03
+
+可能出现的问题 1：
+	设置的文件滚动参数不起作用，一直在产生小文件
+解决方案：
+	增加如下flume sink配置项， refer: https://blog.csdn.net/simonchi/article/details/43231891
+	a2.sinks.k2.hdfs.minBlockReplicas=1
+
+
+7. >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> dir-flume-hdfs <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+dir-flume-hdfs.conf:
+# Name the components on this agent
+	a3.sources = r3
+	a3.sinks = k3
+	a3.channels = c3
+
+
+	# Describe/configure the source
+	a3.sources.r3.type = spooldir
+	a3.sources.r3.spoolDir = /mnt/D/output
+	a3.sources.r3.fileSuffix = .COMPLITED
+	a3.sources.r3.fileHeader = true
+	a3.sources.r3.ignorePattern = ([^ ]*\.tmp)
+
+	# 是否按照时间滚动《文件夹》
+	a3.sinks.k3.hdfs.round = true
+	# 多少时间单位创建一个新的文件夹
+	a3.sinks.k3.hdfs.roundValue = 1
+	# 重新定义时间单位
+	a3.sinks.k3.hdfs.roundUnit = hour		# flume/%Y%m%d/%H，这里是H，对应设置 roundUnit=hour
+
+	# 是否使用本地时间戳
+	a3.sinks.k3.hdfs.useLocalTimeStamp = true
+
+	# key,if not set to 1, samll file will created and roll_params do not work
+	a3.sinks.k3.hdfs.minBlockReplicas=1				# 必须制定，否则还是会使文件滚动参数无效，产生很多小文件
+
+	# 批大小：积攒多少个 Event 才 flush 到 HDFS 一次
+	a3.sinks.k3.hdfs.batchSize = 1000
+
+	# 设置文件类型，可支持压缩
+	a3.sinks.k3.hdfs.fileType = DataStream
+
+	# -------------- 以下3个满足其中之一就会生成新文件 ------------
+	# 如果同时配置了时间策略rollInterval和文件大小策略，那么会先判断时间，如果时间没到再判断其他的条件
+	# 多久生成一个新的《文件》，单位：秒, 生产中不能设置这么短时间，小文件太多
+	a3.sinks.k3.hdfs.rollInterval = 30
+	# 设置每个文件的滚动大，一般生产中设置为 hdfs 的块大小,比块大小略小一些(128M)
+	a3.sinks.k3.hdfs.rollSize = 134217700
+	# 文件的滚动与 Event 数量无关, 生产中一般关闭rollCount
+	a3.sinks.k3.hdfs.rollCount = 0
+
+
+	# Use a channel which buffers events in memory
+	a3.channels.c3.type = memory
+	a3.channels.c3.capacity = 1000
+	a3.channels.c3.transactionCapacity = 100
+
+
+	# Bind the source and sink to the channel
+	a3.sources.r3.channels = c3
+	a3.sinks.k3.channel = c3
+
+NOTES:
+1) 不能监控动态变化的数据(即文件夹内的文件内容不能动态修改，否则需要删除动态修改的文件，重启flume)
+2) 添加的后缀名不要使用预计上传的文件的后缀名
+3) 监控目录中文件名重复会报错，上传的时候不会报错，改名字加后缀会报错，导致flume-ng不能正常运行
+4) 被监控文件目录《每500毫秒》扫描一次文件变动
+5) 扫描上传后的多个文件内容写入同一个hdfs的文件中存储，而不是按照原扫描目录下的文件一个一个存储在hdfs中
+6) 在flume中采集的一行数据量是有大小限制的，默认为2048，即2KB,超过这个限制会被切分成多行
+   -- refer:https://www.cnblogs.com/breg/p/5649363.html
+   可以看看refer中推荐的第二种解决方案
+   解析：
+		Source使用嵌入式的反序列化器读取监控目录下的文件(这里以Spooling Directory Source为例)，默认的反序列化器是LineDeserializer。
+		该反序列化器会《按行读取文件中的内容，封装成一个Event消息》。默认一次读取的最大长度是2048个字符。
+		可以设置source的如下参数设置maxLineLength:
+			a3.sources.r3.deserializer.maxLineLength = 204800
+	---> 一行文本内容被反序列化成一个event。event的最大定义为2048字节，超过会被切割放到下一个event中。
+7) 《enventBased策略下》，上传文件大小sizeUploadFileLocal 与 hdfs分割文件数量numFileCutdHDFS 关系：
+	（timeBased策略下,rollCount=0，禁用）
+	上传文件大小 sizeUploadFileLocal = 522k
+	参数设置：
+		maxLineLength = 204800  # 20k
+		rollCount = 2
+	hdfs分割文件单个大小 sizePerFileHDFS = maxLineLength * rollCount 
+		if sizePerFileHDFS > siezeUploadFileLocal:
+			numFileCutdHDFS = 1
+			sizeFileHDFS = sizePerFileHDFS
+		else:
+			numFileCutdHDFS = math.ceil(sizeUploadFileLocal / sizePerFileHDFS)
+			sizeFileListsHDFS[0:-1] = sizePerFileHDFS
+			sizeFileListsHDFS[-1] = sizeUploadFileLocal - sizePerFileHDFS * (numFileCutdHDFS - 1)
+	eg.
+	sizeUploadFileLocal = 522k, maxLineLength = 20k, rollCount = 2  --->	numFileCutdHDFS = 14 (13*40k + 2.15k)
+	sizeUploadFileLocal = 522k, maxLineLength = 20k, rollCount = 20 --->	numFileCutdHDFS = 2  (400k + 122.5k)
+	......
+8) hdfs需要event的header里要带时间戳，如果没有可以通过设置hdfs.useLocalTimeStamp=true来使用本地时间戳
+
+
+PROBLEMS:
+1) windows共享目录挂载到linux后，由于权限问题，flume-ng监控会出租哦，permission denied, 将共享文件夹的文件转移到centos7的路径后，ok!
+
+UPDATE:
+1) 实现在每天的0点滚动文件
+	refer: https://blog.csdn.net/weixin_33738578/article/details/86025675
+	由于官方的1.8版本hdfs-sink不能在每天的0点滚动文件，所以修改了flume-hdfs-sink源码。
+	flume-hdfs-sink中修改了HDFSEventSink.java文件，其他文件未改动.
+	timeRollerFlag:
+		默认值： day,可以设置minutes, hour, day .minutes 每分钟滚动文件,hour 每小时滚动文件,day 每天0点滚动文件
+	hdfsSink的配置如下：
+		paas2.sinks.k1.type = hdfs
+		paas2.sinks.k1.hdfs.path = hdfs://ns1/user/hive/warehouse/dw_stg.db/tg_paas_business/dt=%Y%m%d
+		paas2.sinks.k1.hdfs.filePrefix = paas_business_%Y%m%d
+		paas2.sinks.k1.hdfs.fileSuffix = .COMPLITED
+		paas2.sinks.k1.hdfs.rollInterval = 0
+		paas2.sinks.k1.hdfs.rollCount = 0
+		paas2.sinks.k1.hdfs.round = false
+		paas2.sinks.k1.hdfs.roundValue=12
+		paas2.sinks.k1.hdfs.roundUnit=hour
+		paas2.sinks.k1.hdfs.rollSize = 134217728
+		paas2.sinks.k1.hdfs.fileType = DataStream
+		paas2.sinks.k1.hdfs.timeRollerFlag=day		# 滚动策略，每天0点滚动文件
+
+	编译后的jar包flume-hdfs-sink-1.8.0.jar.modify_0000_rollFile.bak 替换flume/lib下的 flume-hdfs-sink-1.8.0.jar
+	
+	
