@@ -94,3 +94,21 @@ mysql:   /opt/mysqldatastore/gracesql --> /var/lib/mysql    port:3306
 mongodb: /opt/mongodatastore/mongodb  --> /data/db			port:27017
 redis:   /opt/redisdatastore/data     --> /data
 
+
+# >>>>>>>>>>>>>>>>>>>>>>>>>>>>> docker-compose <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

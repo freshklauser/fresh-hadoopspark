@@ -1,0 +1,25 @@
+1. volumes路径说明
+1) 不使用数据卷：
+	services:
+		db:
+			......
+			volumes:
+			   - /def_data:/var/lib/mysql
+			......
+		
+	其中，/def_data 为宿主机中的绝对路径
+		  /var/lib/mysql 为容器中的绝对路径
+		  
+2) 使用数据卷：
+	services:
+		db:
+			......
+			volumes:
+			   - db_data:/var/lib/mysql
+			......
+	
+	volumes:
+		db_data:
+		
+	其中，db_data在 volumes 中声明为数据卷(不需要手动创建)
+	docker-compose执行后会自动创建名字为 xxx_db_data 的volumes (xxx_为自动添加的前缀)
