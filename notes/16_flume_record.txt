@@ -338,10 +338,29 @@ NOTES:
 	sizeUploadFileLocal = 522k, maxLineLength = 20k, rollCount = 20 --->	numFileCutdHDFS = 2  (400k + 122.5k)
 	......
 8) hdfs需要event的header里要带时间戳，如果没有可以通过设置hdfs.useLocalTimeStamp=true来使用本地时间戳
+9) taildir实时监控目录下的多个文件追加或监控文件新增
+	1) 监控一个目录下的多个文件夹可以使用正则来匹配一批相同规则的文件，不同规则的文件若监控的话需要另起一个filegroups的子对象如f3
+	2) 若果变更了部分监控文件的匹配规则，启动flume监控日志后，position中这部分旧匹配规则文件的position信息会被删除，被新匹配规则文件的position信息覆盖，
+	   没变更匹配规则的文件position信息依旧会被保留；
+
+	
+	
+
 
 
 PROBLEMS:
 1) windows共享目录挂载到linux后，由于权限问题，flume-ng监控会出租哦，permission denied, 将共享文件夹的文件转移到centos7的路径后，ok!
+2) flume的SLF4J日志jar包与hadoop的SLF4J日志jar包版本冲突，
+	SLF4J: Class path contains multiple SLF4J bindings.
+	SLF4J: Found binding in [jar:file:/usr/local/flume/lib/slf4j-log4j12-1.6.1.jar!/org/slf4j/impl/StaticLoggerBinder.class]
+	SLF4J: Found binding in [jar:file:/usr/hdp/2.6.3.0-235/hadoop/lib/slf4j-log4j12-1.7.10.jar!/org/slf4j/impl/StaticLoggerBinder.class]
+   解决方案：
+		flume中的SLF4J jar包更名备份(使用hdfs-sink时更名，不适用hdfs-sink时再改回原jar包名)
+3) taildir-flume-logger 中，设置如下filegroups.f1的监控文件：
+		a1.sources.r1.filegroups.f1 = /usr/local/flume/files/file1.txt
+		a1.sources.r1.filegroups.f1 = /usr/local/flume/files/spindle-info-20200116.log
+	会导致 file1.txt 会被 spindle-info-20200116.log 覆盖掉，在 position.json 中记录的只有 spindle-info-20200116.log 的信息，没有 file1.txt的信息
+	---> 说明 见 NOTES的9)所述
 
 UPDATE:
 1) 实现在每天的0点滚动文件
