@@ -25,3 +25,17 @@
 	yG 					 -->	复制游标所在行到最后一行的所有数据
 	J 					 -->	将光标所在行与下一行的数据结合成同一行
 	yy 					 -->	复制游标所在的那一行(常用)
+	
+	
+3. 修改网络配置参数
+	路径：vim /etc/sysconfig/network-scripts/ifcfg-ens33 
+	
+
+
+4. sudoers权限：0440 
+	root下修改：chmod -R 0770 /etc/sudoers  ; 
+				chmod -R a+w /etc/sudoers
+	root下恢复权限：
+				chmod -R 0440 /etc/sudoers
+				chmod -R a-w /etc/sudoers
+				
