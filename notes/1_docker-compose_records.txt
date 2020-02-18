@@ -23,3 +23,5 @@
 		
 	其中，db_data在 volumes 中声明为数据卷(不需要手动创建)
 	docker-compose执行后会自动创建名字为 xxx_db_data 的volumes (xxx_为自动添加的前缀)
+	
+

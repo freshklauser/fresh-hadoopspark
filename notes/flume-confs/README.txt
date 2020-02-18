@@ -4,3 +4,4 @@
    flume/lib中的 flume-hdfs-sink-1.8.0.jar
    refer: https://blog.csdn.net/simonchi/article/details/45365377
    
+2. 

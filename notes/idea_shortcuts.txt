@@ -12,6 +12,8 @@ Ctrl+H (Navigate | Type Hierarchy) see the inheritance hierarchy for a selected 
 Ctrl + " +/- "：展开、折叠当前方法
 Ctrl + Shift + " +/- "：展开、折叠全部方法
 
+ctrl+alt+T: 代码块添加 try...cathch...  if...else...等
+
 .var --> 快捷鍵：ctrl+alt+v
 .sout
 
@@ -26,10 +28,17 @@ Ctrl + Shift + " +/- "：展开、折叠全部方法
 		* @return: $return$
 		*/ 
 		
-		
+
+idea 实现接口没有 @overwrite 解决方案：
+	idea中默认的Language level 使用的是5.0版本，不支持在重写的接口方法上加@Override注解
+	解决方法：点击idea左上角File–>Project Stucture-->Modules-->选中所有modules，Sources中Language Level选择8xxxx
 		
 idea 重新加载项目后出现：错误: 找不到或无法加载主类 
 
 
-
+---------------------------------------------------------------------
+激活IDEA
+jetbrains-agent.jar
+-javaagent:<path_jetbrains-agent.jar>
+激活码
 	
