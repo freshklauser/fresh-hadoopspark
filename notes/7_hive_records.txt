@@ -1,0 +1,298 @@
+/**
+ * mysql中可以指定 id INT UNSIGNED AUTO_INCREMENT，hql中指定后两个关键字会报错
+ * mysql中需要指定 PRIMARY KEY，hql中不需要指定？？
+ */
+hive> create table tb_hive_test(id INT, name VARCHAR(30));
+OK
+Time taken: 0.366 seconds
+
+
+hive> show tables;
+OK
+tb_hive_test
+Time taken: 0.238 seconds, Fetched: 1 row(s)
+
+
+hive> desc tb_hive_test;
+OK
+id                  	int                 	                    
+name                	varchar(30)         	                    
+Time taken: 0.423 seconds, Fetched: 2 row(s)
+
+
+hive> insert into tb_hive_test values(1,'Messi');
+Query ID = hdfs_20191120112746_1c9cd134-894c-4955-82b2-7d988fb2aa0b
+Total jobs = 1
+Launching Job 1 out of 1
+Tez session was closed. Reopening...
+Session re-established.
+Status: Running (Executing on YARN cluster with App id application_1572829328635_0032)
+
+--------------------------------------------------------------------------------
+        VERTICES      STATUS  TOTAL  COMPLETED  RUNNING  PENDING  FAILED  KILLED
+--------------------------------------------------------------------------------
+Map 1 ..........   SUCCEEDED      1          1        0        0       0       0
+--------------------------------------------------------------------------------
+VERTICES: 01/01  [==========================>>] 100%  ELAPSED TIME: 5.60 s     
+--------------------------------------------------------------------------------
+Loading data to table lyu_db.tb_hive_test
+Table lyu_db.tb_hive_test stats: [numFiles=1, numRows=1, totalSize=8, rawDataSize=7]
+OK
+Time taken: 14.393 seconds
+
+
+hive> insert into tb_hive_test values(2,'buffo');
+Query ID = hdfs_20191120112818_d368a08d-e441-4ab5-ad31-dbe1e0d26595
+Total jobs = 1
+Launching Job 1 out of 1
+Status: Running (Executing on YARN cluster with App id application_1572829328635_0032)
+
+--------------------------------------------------------------------------------
+        VERTICES      STATUS  TOTAL  COMPLETED  RUNNING  PENDING  FAILED  KILLED
+--------------------------------------------------------------------------------
+Map 1 ..........   SUCCEEDED      1          1        0        0       0       0
+--------------------------------------------------------------------------------
+VERTICES: 01/01  [==========================>>] 100%  ELAPSED TIME: 4.21 s     
+--------------------------------------------------------------------------------
+Loading data to table lyu_db.tb_hive_test
+Table lyu_db.tb_hive_test stats: [numFiles=2, numRows=2, totalSize=16, rawDataSize=14]
+OK
+Time taken: 5.739 seconds
+
+
+hive> select * from tb_hive_test limit 3;
+OK
+1	Messi
+2	buffo
+Time taken: 0.079 seconds, Fetched: 2 row(s)
+
+
+hiveJDBC访问：(有什么用？？？ 0: jdbc:hive2://node4:10000> 与直接 hive> 有什么区别)
+terminal-1中：
+[hdfs@node4 hive]$ bin/hiveserver2
+log4j:WARN No such property [maxFileSize] in org.apache.log4j.DailyRollingFileAppender.
+.... ----> 启动服务
+terminal-2中：
+[hdfs@node4 hive]$ bin/beeline
+Beeline version 1.2.1000.2.6.3.0-235 by Apache Hive
+beeline> !connect jdbc:hive2://node4:10000
+Connecting to jdbc:hive2://node4:10000
+Enter username for jdbc:hive2://node4:10000: bigdata
+Enter password for jdbc:hive2://node4:10000: *************
+Connected to: Apache Hive (version 1.2.1000.2.6.3.0-235)
+Driver: Hive JDBC (version 1.2.1000.2.6.3.0-235)
+Transaction isolation: TRANSACTION_REPEATABLE_READ
+0: jdbc:hive2://node4:10000> show databases;
++----------------+--+
+| database_name  |
++----------------+--+
+| default        |
+| lyu_db         |
+| test_1114      |
++----------------+--+
+3 rows selected (2.163 seconds)
+0: jdbc:hive2://node4:10000> 
+
+# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  hive配置 <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+1. hive-site.xml文件中添加如下配置信息，可以实现显示当前数据库以及查询表的头信息配置：
+	<property>
+      <name>hive.cli.print.header</name>
+      <value>true</value>
+    </property>
+   
+    <property>
+      <name>hive.cli.print.current.db</name>
+      <value>true</value>
+    </property>
+	
+
+# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  hive操作 <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+hive (lyu_db)> use lyu_db;
+# hive中创建表并指定 delimite 方式
+hive (lyu_db)> create table test(
+             > name string,
+             > friends array<string>,
+             > children map<string, int>,
+             > address struct<street:string, city:string>)
+             > row format delimited
+             > fields terminated by ','
+             > collection items terminated by '_'
+             > map keys terminated by ':'
+             > lines terminated by '\n';
+OK
+Time taken: 0.24 seconds
+
+hive (lyu_db)> show tables;
+OK
+tab_name
+tb_hive_test
+test
+Time taken: 0.238 seconds, Fetched: 2 row(s)
+
+hive (lyu_db)> desc test;
+OK
+col_name	data_type	comment
+name                	string              	                    
+friends             	array<string>       	                    
+children            	map<string,int>     	                    
+address             	struct<street:string,city:string>	                    
+Time taken: 0.412 seconds, Fetched: 4 row(s)
+
+# 创建相同结构的表
+hive (lyu_db)> create table test2 like test;
+OK
+Time taken: 0.35 seconds
+
+# 将本地文件加载到 test 表中
+hive (lyu_db)> load data local inpath "/usr/hdp/2.6.3.0-235/hive/test.json" into table test2;
+Loading data to table lyu_db.test
+Table lyu_db.test stats: [numFiles=1, numRows=0, totalSize=254, rawDataSize=0]
+OK
+Time taken: 0.883 seconds
+
+# 创建相同的表（数据也相同）
+hive (lyu_db)> create table test3 like test2;
+OK
+Time taken: 0.358 seconds
+
+hive (lyu_db)> insert into test3 select * from test2;
+Query ID = hdfs_20191120143749_c76ea8e5-aeee-46a9-8004-4569a60a662a
+Total jobs = 1
+Launching Job 1 out of 1
+Tez session was closed. Reopening...
+Session re-established.
+Status: Running (Executing on YARN cluster with App id application_1572829328635_0036)
+
+--------------------------------------------------------------------------------
+        VERTICES      STATUS  TOTAL  COMPLETED  RUNNING  PENDING  FAILED  KILLED
+--------------------------------------------------------------------------------
+Map 1 ..........   SUCCEEDED      1          1        0        0       0       0
+--------------------------------------------------------------------------------
+VERTICES: 01/01  [==========================>>] 100%  ELAPSED TIME: 4.72 s     
+--------------------------------------------------------------------------------
+Loading data to table lyu_db.test3
+Table lyu_db.test3 stats: [numFiles=1, numRows=2, totalSize=146, rawDataSize=144]
+OK
+test2.name	test2.friends	test2.children	test2.address
+Time taken: 12.85 seconds
+
+hive (lyu_db)> select * from test3;
+OK
+test3.name	test3.friends	test3.children	test3.address
+songsong	["bingbing","lili"]	{"xiao song":18,"xiaoxiao song":19}	{"street":"hui long guan","city":"beijing"}
+yangyang	["caicai","susu"]	{"xiao  yang":18,"xiaoxiao  yang":19}	{"street":"chao yang","city":"beijing"}
+Time taken: 0.072 seconds, Fetched: 2 row(s)
+
+# struct map array的索引方式
+hive (lyu_db)> select name, friends[1] as friend, children['xiao  yang'] as childage, address.city as city from test3 where name ='yangyang';
+
+OK
+name	friend	childage	city
+yangyang	susu	18	beijing
+Time taken: 0.065 seconds, Fetched: 1 row(s)
+
+# 操作案例2： http://dblab.xmu.edu.cn/blog/1364-2/
+CREATE EXTERNAL TABLE dbtaobao.user_log(
+	user_id INT,
+	item_id INT,
+	cat_id INT,
+	merchant_id INT,
+	brand_id INT,
+	month STRING,
+	day STRING,
+	action INT,
+	age_range INT,
+	gender INT,
+	province STRING) 
+	COMMENT 'Welcome to xmu dblab,Now create dbtaobao.user_log!' 
+	ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' 
+	STORED AS TEXTFILE, 						# 表数据的存储序列化信息, 表存储类型
+	LOCATION '/dbtaobao/dataset/user_log';		# 外部表：数据源路径和数据存储路径 (外部表不会移动数据)
+	# LOCATION 字段多使用在外部表的场景下，当数据已经存在hdfs上，并且不能随意移动这个数据，
+	  这个数据也不能被修改想使用这个数据的时候，只能指定location，建表的时候也可以使用location
+	# 外部表的话，LCOATION 这个路径既是数据存放位置也是数据来源路径，因为 外部表不会移动数据
+
+hive> show create table user_log;
+OK
+CREATE EXTERNAL TABLE `user_log`(
+  `user_id` int, 
+  `item_id` int, 
+  `cat_id` int, 
+  `merchant_id` int, 
+  `brand_id` int, 
+  `month` string, 
+  `day` string, 
+  `action` int, 
+  `age_range` int, 
+  `gender` int, 
+  `province` string)
+COMMENT 'Welcome to dblab,Now create dbtaobao.user_log!'			# 注释
+ROW FORMAT DELIMITED 
+  FIELDS TERMINATED BY ',' 
+STORED AS INPUTFORMAT 												# 存储格式？？
+  'org.apache.hadoop.mapred.TextInputFormat' 
+OUTPUTFORMAT 														# 输出格式？？
+  'org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat'
+LOCATION															# 表的位置
+  'hdfs://node1:8020/lyu/dbtaobao/dataset/user_log'
+TBLPROPERTIES (
+  'numFiles'='1', 
+  'totalSize'='473395', 
+  'transient_lastDdlTime'='1575619276')
+Time taken: 0.258 seconds, Fetched: 25 row(s)
+
+hive> desc user_log;
+OK
+user_id             	int                 	                    
+item_id             	int                 	                    
+cat_id              	int                 	                    
+merchant_id         	int                 	                    
+brand_id            	int                 	                    
+month               	string              	                    
+day                 	string              	                    
+action              	int                 	                    
+age_range           	int                 	                    
+gender              	int                 	                    
+province            	string              	                    
+Time taken: 0.428 seconds, Fetched: 11 row(s)
+
+# 创建临时表 inner_user_log
+hive> create table dbtaobao.inner_user_log(
+    > user_id INT,
+    > item_id INT,
+    > cat_id INT,
+    > merchant_id INT,
+    > brand_id INT,
+    > month STRING,
+    > day STRING,
+    > action INT,
+    > age_range INT,
+    > gender INT,
+    > province STRING)
+    > COMMENT 'create inner table inner_user_log'
+    > ROW FORMAT DELIMITED FIELDS TERMINATED BY ','
+    > STORED AS TEXTFILE;
+OK
+Time taken: 0.339 seconds
+
+# 将user_log表中的数据插入到inner_user_log
+hive> INSERT OVERWRITE TABLE dbtaobao.inner_user_log select * from dbtaobao.user_log;
+Query ID = centos_20191206172031_714c9f9d-8452-48ac-af98-7a437da4fc85
+Total jobs = 1
+Launching Job 1 out of 1
+Tez session was closed. Reopening...
+Session re-established.
+Status: Running (Executing on YARN cluster with App id application_1575100000033_0015)
+
+--------------------------------------------------------------------------------
+        VERTICES      STATUS  TOTAL  COMPLETED  RUNNING  PENDING  FAILED  KILLED
+--------------------------------------------------------------------------------
+Map 1 ..........   SUCCEEDED      1          1        0        0       0       0
+--------------------------------------------------------------------------------
+VERTICES: 01/01  [==========================>>] 100%  ELAPSED TIME: 5.99 s     
+--------------------------------------------------------------------------------
+Loading data to table dbtaobao.inner_user_log
+Table dbtaobao.inner_user_log stats: [numFiles=1, numRows=10000, totalSize=473423, rawDataSize=463423]
+OK
+Time taken: 14.46 seconds
+
