@@ -20,15 +20,11 @@ flag = 1
 while flag:
     data = np.round(np.random.rand(1,10) * 1000,0)
     print('---->', flag)
-    
+
     to_txt(data)
-    
+
     flag += 1
     if flag >= 1000:
         flag = 0
-    
+
     time.sleep(0.5)
-
-
-
-    

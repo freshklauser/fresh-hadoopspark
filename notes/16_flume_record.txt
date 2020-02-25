@@ -199,8 +199,8 @@ log-flume-hdfs.conf:
 	a2.sinks.k2.hdfs.path = hdfs://master:9000/lyu/flume/%Y%m%d/%H
 	# 上传文件的前缀
 	a2.sinks.k2.hdfs.filePrefix = logs-
-	# hive中一天数据一个分区？滚动文件夹设置为以天为单位，则一天的数据在一个文件夹中，很方便load数据对应hive一个分区？
-
+	
+	# 控制分区：hive中一天数据一个分区？滚动文件夹设置为以天为单位，则一天的数据在一个文件夹中，很方便load数据对应hive一个分区？
 	# 是否按照时间滚动《文件夹》
 	a2.sinks.k2.hdfs.round = true
 	# 多少时间单位创建一个新的文件夹
@@ -220,10 +220,10 @@ log-flume-hdfs.conf:
 	# 设置文件类型，可支持压缩
 	a2.sinks.k2.hdfs.fileType = DataStream
 
-	# -------------- 以下3个满足其中之一就会生成新文件 ------------
-	# 多久生成一个新的《文件》，单位：秒, 生产中不能设置这么短时间，小文件太多
+	# -------------- 以下3个满足其中任何之一就会生成新文件 ------------
+	# 多久生成一个新的《文件》，单位：秒, 生产中不能设置这么短时间，小文件太多，一般设600s即10分钟滚动一次文件
 	a2.sinks.k2.hdfs.rollInterval = 30
-	# 设置每个文件的滚动大小，一般生产中设置为 hdfs 的块大小,比块大小略小一些(128M)
+	# 设置每个文件的滚动大小(字节)，一般生产中设置为 hdfs 的块大小,比块大小略小一些(128M)
 	a2.sinks.k2.hdfs.rollSize = 134217700
 	# 文件的滚动与 Event 数量无关, 生产中一般关闭rollCount
 	a2.sinks.k2.hdfs.rollCount = 0
@@ -252,7 +252,7 @@ hdfs文件系统中出现文件夹：/lyu/flume/20200114/03
 
 7. >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> dir-flume-hdfs <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 dir-flume-hdfs.conf:
-# Name the components on this agent
+	# Name the components on this agent
 	a3.sources = r3
 	a3.sinks = k3
 	a3.channels = c3
@@ -260,23 +260,33 @@ dir-flume-hdfs.conf:
 
 	# Describe/configure the source
 	a3.sources.r3.type = spooldir
-	a3.sources.r3.spoolDir = /mnt/D/output
+	#a3.sources.r3.spoolDir = /mnt/D/output
+	a3.sources.r3.spoolDir = /usr/local/flume/lyu
 	a3.sources.r3.fileSuffix = .COMPLITED
 	a3.sources.r3.fileHeader = true
 	a3.sources.r3.ignorePattern = ([^ ]*\.tmp)
 
-	# 是否按照时间滚动《文件夹》
+	# Describe the sink
+	a3.sinks.k3.type = hdfs
+	a3.sinks.k3.hdfs.path = hdfs://master:9000/lyu/flume/%Y%m%d/%H
+	# 上传文件的前缀
+	a3.sinks.k3.hdfs.filePrefix = time-based-upload-
+
+	# 是否启用时间上的”舍弃”，这里的”舍弃”，类似于”四舍五入”，比如17:28时间生产的文件夹，命名为1720
+	# 影响除了%t的其他所有时间表达式,通常用在目录级别，控制文件夹的创建
 	a3.sinks.k3.hdfs.round = true
 	# 多少时间单位创建一个新的文件夹
 	a3.sinks.k3.hdfs.roundValue = 1
 	# 重新定义时间单位
-	a3.sinks.k3.hdfs.roundUnit = hour		# flume/%Y%m%d/%H，这里是H，对应设置 roundUnit=hour
+	a3.sinks.k3.hdfs.roundUnit = hour
+	# flume/%Y%m%d/%H，这里是H，对应设置 roundUnit=hour
 
 	# 是否使用本地时间戳
 	a3.sinks.k3.hdfs.useLocalTimeStamp = true
 
 	# key,if not set to 1, samll file will created and roll_params do not work
-	a3.sinks.k3.hdfs.minBlockReplicas=1				# 必须制定，否则还是会使文件滚动参数无效，产生很多小文件
+	# 必须指定，否则还是会使文件滚动参数无效，产生很多小文件
+	a3.sinks.k3.hdfs.minBlockReplicas=1
 
 	# 批大小：积攒多少个 Event 才 flush 到 HDFS 一次
 	a3.sinks.k3.hdfs.batchSize = 1000
@@ -284,8 +294,7 @@ dir-flume-hdfs.conf:
 	# 设置文件类型，可支持压缩
 	a3.sinks.k3.hdfs.fileType = DataStream
 
-	# -------------- 以下3个满足其中之一就会生成新文件 ------------
-	# 如果同时配置了时间策略rollInterval和文件大小策略，那么会先判断时间，如果时间没到再判断其他的条件
+	# -------------- 以下3个满足其中任意之一就会生成新文件 ------------
 	# 多久生成一个新的《文件》，单位：秒, 生产中不能设置这么短时间，小文件太多
 	a3.sinks.k3.hdfs.rollInterval = 30
 	# 设置每个文件的滚动大，一般生产中设置为 hdfs 的块大小,比块大小略小一些(128M)
@@ -293,6 +302,8 @@ dir-flume-hdfs.conf:
 	# 文件的滚动与 Event 数量无关, 生产中一般关闭rollCount
 	a3.sinks.k3.hdfs.rollCount = 0
 
+	# 设置闲置时间600s，达到时长没数据的话就自动关闭文件
+	a3.sinks.k3.hdfs.idleTimeout = 600
 
 	# Use a channel which buffers events in memory
 	a3.channels.c3.type = memory
@@ -303,7 +314,7 @@ dir-flume-hdfs.conf:
 	# Bind the source and sink to the channel
 	a3.sources.r3.channels = c3
 	a3.sinks.k3.channel = c3
-	
+
 
 8 >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> flume监控 <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 监控工具：ganglia
@@ -381,12 +392,18 @@ dir-flume-hdfs.conf:
 	其中：如果 EventPutSuccessCount = channelCapacity + EventTakeSuccessCount, 说明没有丢数据;
 	如果后者之后小于前者，则有数据丢失
 
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> NOTES <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 NOTES:
 1) 不能监控动态变化的数据(即文件夹内的文件内容不能动态修改，否则需要删除动态修改的文件，重启flume)
+
 2) 添加的后缀名不要使用预计上传的文件的后缀名
+
 3) 监控目录中文件名重复会报错，上传的时候不会报错，改名字加后缀会报错，导致flume-ng不能正常运行
+
 4) 被监控文件目录《每500毫秒》扫描一次文件变动
+
 5) 扫描上传后的多个文件内容写入同一个hdfs的文件中存储，而不是按照原扫描目录下的文件一个一个存储在hdfs中
+
 6) 在flume中采集的一行数据量是有大小限制的，默认为2048，即2KB,超过这个限制会被切分成多行
    -- refer:https://www.cnblogs.com/breg/p/5649363.html
    可以看看refer中推荐的第二种解决方案
@@ -396,6 +413,7 @@ NOTES:
 		可以设置source的如下参数设置maxLineLength:
 			a3.sources.r3.deserializer.maxLineLength = 204800
 	---> 一行文本内容被反序列化成一个event。event的最大定义为2048字节，超过会被切割放到下一个event中。
+
 7) 《enventBased策略下》，上传文件大小sizeUploadFileLocal 与 hdfs分割文件数量numFileCutdHDFS 关系：
 	（timeBased策略下,rollCount=0，禁用）
 	上传文件大小 sizeUploadFileLocal = 522k
@@ -414,23 +432,30 @@ NOTES:
 	sizeUploadFileLocal = 522k, maxLineLength = 20k, rollCount = 2  --->	numFileCutdHDFS = 14 (13*40k + 2.15k)
 	sizeUploadFileLocal = 522k, maxLineLength = 20k, rollCount = 20 --->	numFileCutdHDFS = 2  (400k + 122.5k)
 	......
+
 8) hdfs需要event的header里要带时间戳，如果没有可以通过设置hdfs.useLocalTimeStamp=true来使用本地时间戳
+
 9) taildir实时监控目录下的多个文件追加或监控文件新增
 	1) 监控一个目录下的多个文件夹可以使用正则来匹配一批相同规则的文件，不同规则的文件若监控的话需要另起一个filegroups的子对象如f3
 	2) 若果变更了部分监控文件的匹配规则，启动flume监控日志后，position中这部分旧匹配规则文件的position信息会被删除，被新匹配规则文件的position信息覆盖，
 	   没变更匹配规则的文件position信息依旧会被保留；
+
 10) hdfs sink中的参数batchSize不能小于channel的transactionCapacity：
 	sink的batchsize是sink会一次从channel中取多少个event去发送，而这个发送是要最终以事务的形式去发送的，因此这个batchsize的event会传送到一个事务的缓存队列中（takeList），这是一个双向队列，这个队列可以在事务失败时进行回滚（也就是把取出来的数据吐memeryChannel的queue中），它的初始大小就是transactionCapacity定义的大小，
 	比如：bathSize=100, transactionCapacity=10, 当100个events被发送到容量为10的缓存队列时，第11个event无没有位置可以存放，因此会报错；
+	(batchSize设定：event在1k左右时，设置为500-1000合适)
+
 11) spooldir source可以通过设置删除策略 deletePolicy 来处理重名文件
 	Property Name 	Default 	Description
 	deletePolicy 	never 		When to delete completed files: never or immediate
+
 12) channelSelector类型中的复制Replicating和多路复用multiplexing ---> channel端
 	Replicating缺陷：
 		a) 每增加一个下游使用者，需要对应增加一个sink和一个channel；
 		b) 且不具备动态增加的功能 （flume运行状态下无法增加，只能先停掉flume才能增加）
 	Multiplexing：
 		(1) 主要用于数据分类，需要结合拦截器Interpretor使用，拦截器增加header头信息
+
 13) 负载均衡load_balance和故障转移failover ---> sinkProcessor，sink组 端
 	sink组的策略类型：default, failover, load_balance
 	failover:
@@ -446,9 +471,29 @@ NOTES:
 		a1.sinkgroups.g1.processor.type = load_balance
 		a1.sinkgroups.g1.processor.backoff = true
 		a1.sinkgroups.g1.processor.selector = random		# round_robin(轮循) or random(随机)
+
 14) memoryChannel和fileChannel
-	memoryChannel 内存运算，速度快，不过数据会有一定的丢失；
-	fileChannel 磁盘保存，速度慢，数据不易丢失
+	memoryChannel：存储在“JVM的堆内存“中，内存运算，速度快，不过数据会有一定的丢失；
+	fileChannel：磁盘保存，速度慢，数据不易丢失
+		(1) 通过配置多dir可以增大吞吐量 (一个dir对应一个磁盘)
+		(2) checkpointDir 和 backupCheckpointDir要配置在不同的磁盘中 (df -h 命令查看磁盘情况)
+
+15) hdfs.rollInterval, hdfs.rollSize, hdfs.rollCount默认设置会产生小文件问题，大量小文件对hadoop集群性能和拓展性有很大影响：
+	(1) 占用NameNode大量内存:
+		每个文件均按块存储，每个块的元数据存储在NameNode的内存中，因此HDFS存储小文件会非常低效。因为大量的小文件会耗尽NameNode中的大部分内存；
+		
+	(2) 磁盘寻址会变慢，降低吞吐量；
+		数据块在硬盘为连续存储，对于普通SATA盘，随机寻址较慢，如果块设置过小，一个文件的块总数会越多，意味着磁盘盘寻址时间会加长，自然吞吐量无法满足要求；如果块设置过大，一方面对于普通盘来说IO性能也比较差，加载时会很慢，另一方面，块过大，对于多副本来说，在副本出问题时，系统恢复时间越长。
+		
+	(3) 多少个小文件就会开启多少个map任务，浪费大量资源：
+		从Hive的角度看，小文件会开很多map，一个map开一个JVM去执行，所以这些任务的初始化，启动，执行会浪费大量的资源，严重影响性能
+
+16) hdfs.round, hdfs.roundValue, hdfs.roundUnit如何控制分区？
+	hdfs.round主要影响除了%t的其他所有时间表达式，xxxxx
+
+17) flume一般生产环境分为2层或3层，原因是什么？单层会有什么问题？
+
+
 
 
 PROBLEMS:
