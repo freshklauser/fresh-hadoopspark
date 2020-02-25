@@ -1,0 +1,139 @@
+refer1: https://www.jianshu.com/p/2711c296cfce
+refer2: https://blog.csdn.net/qq_43474966/article/details/102749107
+1. 创建如下目录结构
+	docker/docker-compose.yml
+	docker/mysql/data
+	docker/mysql/my.cnf
+	docker/redis/data
+	docker/redis/redis.conf
+
+2. 编写my.cnf文件
+	[client]
+	port = 3306
+	socket = /var/lib/mysql/data/mysql.sock
+	[mysqld]
+	# 针对5.7版本执行group by字句出错问题解决
+	sql_mode='STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION'
+	# 一般配置选项
+	basedir = /var/lib/mysql
+	datadir = /var/lib/mysql/data
+	port = 3306
+	socket = /var/lib/mysql/data/mysql.sock
+	lc-messages-dir = /usr/share/mysql # 务必配置此项，否则执行sql出错时，只能显示错误代码而不显示具体错误消息
+	character-set-server=utf8
+	back_log = 300
+	max_connections = 3000
+	max_connect_errors = 50
+	table_open_cache = 4096
+	max_allowed_packet = 32M
+	#binlog_cache_size = 4M
+	max_heap_table_size = 128M
+	read_rnd_buffer_size = 16M
+	sort_buffer_size = 16M
+	join_buffer_size = 16M
+	thread_cache_size = 16
+	query_cache_size = 64M
+	query_cache_limit = 4M
+	ft_min_word_len = 8
+	thread_stack = 512K
+	transaction_isolation = REPEATABLE-READ
+	tmp_table_size = 64M
+	#log-bin=mysql-bin
+	long_query_time = 6
+	server_id=1
+	innodb_buffer_pool_size = 256M
+	innodb_thread_concurrency = 16
+	innodb_log_buffer_size = 16M
+	
+3. 编写redis.conf文件
+	从官网 https://redis.io/topics/config 下载对应版本的 redis.conf内容，在此基础上修改以下几个参数
+	daemonize no     	## 若使用开机启动，生成pid，该项必须设置为诶yes，否则redis将不能够正常执行开机启动(systemctl start redis,执行后一直卡着，直到超时)
+	#bind 127.0.0.1  	##注释掉，允许所有其他ip访问，真实使用最好坐下限制，只允许某些主机访问
+	protected-mode no   ## 允许其他机器上的客户端连接当前redis，配置文件设置该项，则开机启动处就可以去掉--protected no 
+	requirepass xxxx  	##设置密码 xxxx为设置的密码
+	注意：
+		docker中是通过容器参数设置守护进程，因此不需要开机启动daemonioze，将其设置为no
+redis.conf内容：
+	见redis.conf文件
+
+
+4. 编写docker-compose文件 
+[klaus@messi dockerdbs]$ touch docker-compose-dbs.yml
+[klaus@messi dockerdbs]$ subl docker-compose-dbs.yml
+version: '3'
+services:
+  mysql:
+    hostname: mysql
+    image: mysql:5.7.26
+    # network_mode: "host" # 如果需要容器使用宿主机IP(内网IP)，则可以配置此项
+    container_name: mysql
+    restart: unless-stopped # 设置容器自启模式
+    environment:
+      - TZ=Asia/Shanghai # 设置容器时区与宿主机保持一致
+      - MYSQL_ROOT_PASSWORD=spindle123456 # 设置root密码
+    volumes:
+      - /etc/localtime:/etc/localtime:ro # 设置容器时区与宿主机保持一致
+      - ./mysql/data:/var/lib/mysql/data # 映射数据库保存目录到宿主机，防止数据丢失
+      - ./mysql/my.cnf:/etc/mysql/my.cnf # 映射数据库配置文件
+    ports:
+        - "3306:3306"
+    command: mysqld --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci # 设置utf8字符集
+
+  redis:
+    hostname: redis
+    image: redis:5.0.4
+    container_name: redis
+    restart: unless-stopped
+    environment:
+      - TZ=Asia/Shanghai
+    volumes:
+      - /etc/localtime:/etc/localtime:ro # 设置容器时区与宿主机保持一致
+      - ./redis/data:/data
+      - ./redis/redis.conf:/etc/redis.conf
+    ports:
+        - "6379:6379"
+    command: redis-server /etc/redis.conf # 启动redis命令
+
+	
+5. docker-compose创建并启动容器
+[klaus@messi dockerdbs]$ docker-compose -f docker-compose-dbs.yml up -d
+	注意：
+		如果文件名就叫做docker-compose.yml则可以不适用-f选项指定文件路劲，up选项启动容器，-d选项以守护模式运行
+6. 查看容器运行状况：
+[klaus@messi dockerdbs]$ docker-compose -f docker-compose-dbs.yml top
+mysql
+  UID      PID    PPID    C   STIME   TTY     TIME                      CMD                 
+--------------------------------------------------------------------------------------------
+polkitd   20026   19989   1   16:57   ?     00:00:01   mysqld --character-set-server=utf8mb4
+                                                       --collation-server=utf8mb4_unicode_ci
+
+redis
+  UID      PID    PPID    C   STIME   TTY     TIME             CMD        
+--------------------------------------------------------------------------
+polkitd   20033   19988   0   16:57   ?     00:00:00   redis-server *:6379
+
+查看容器日志信息：
+docker logs 容器名词或容器ID # 既docker-compose.yml文件参数container_name指定的值
+[klaus@messi dockerdbs]$ docker logs mysql 
+
+6. 批量停止容器并删除(down)， 只是停止(stop)：
+[klaus@messi dockerdbs]$ docker-compose -f docker-compose.yml stop
+
+7. 进入mysql容器
+[klaus@messi dockerdbs]$ docker exec -it mysql bash
+root@mysql:/# mysql -uroot -p
+Enter password: 
+Welcome to the MySQL monitor.  Commands end with ; or \g.
+Your MySQL connection id is 3
+Server version: 5.7.26 MySQL Community Server (GPL)
+
+Copyright (c) 2000, 2019, Oracle and/or its affiliates. All rights reserved.
+
+Oracle is a registered trademark of Oracle Corporation and/or its
+affiliates. Other names may be trademarks of their respective
+owners.
+
+Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.
+
+mysql> 
+
